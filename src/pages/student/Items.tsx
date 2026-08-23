@@ -138,7 +138,31 @@ export default function Items() {
               <div key={item.id} className="product-card">
                 <div style={{ position: 'relative' }}>
                   <Link to={ROUTES.ITEM_DETAIL.replace(':id', item.id)} style={{ display: 'block' }}>
-                    <img src={imgSrc} alt={item.name} className="product-card-img" />
+                    <img
+                      src={imgSrc}
+                      alt={item.name}
+                      className="product-card-img"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement | null;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                    {/* Emoji fallback shown only when image fails */}
+                    <div
+                      style={{
+                        display: 'none',
+                        width: '100%',
+                        aspectRatio: '4/3',
+                        background: 'var(--bg-elevated)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '3.5rem',
+                      }}
+                    >
+                      {getItemEmoji(item.category)}
+                    </div>
                   </Link>
                   <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
                     <span className={`badge ${isAvailable ? 'badge-ready' : 'badge-cancelled'}`}>

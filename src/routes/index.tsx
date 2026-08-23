@@ -26,6 +26,7 @@ import Cart from '@/pages/student/Cart';
 import Checkout from '@/pages/student/Checkout';
 import Reservations from '@/pages/student/Reservations';
 import ReservationDetail from '@/pages/student/ReservationDetail';
+import Profile from '@/pages/student/Profile';
 
 // Pages — Staff
 import CanteenDashboard from '@/pages/staff/CanteenDashboard';
@@ -99,6 +100,7 @@ export const routes: RouteObject[] = [
       { path: ROUTES.CHECKOUT, element: <Checkout /> },
       { path: ROUTES.RESERVATIONS, element: <Reservations /> },
       { path: ROUTES.RESERVATION_DETAIL, element: <ReservationDetail /> },
+      { path: ROUTES.PROFILE, element: <Profile /> },
     ],
   },
 

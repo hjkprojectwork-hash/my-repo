@@ -50,6 +50,7 @@ export const ROUTES = {
   CHECKOUT: '/checkout',
   RESERVATIONS: '/reservations',
   RESERVATION_DETAIL: '/reservations/:id',
+  PROFILE: '/profile',
 
   // Staff
   STAFF_CANTEEN: '/staff/canteen',

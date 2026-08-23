@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Logo from '@/components/common/Logo';
 import { ROUTES } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,6 +18,7 @@ const drawerItems = [
   { to: ROUTES.ITEMS,        label: 'Explore',       icon: '🍽️' },
   { to: ROUTES.CART,         label: 'Cart',          icon: '🛒' },
   { to: ROUTES.RESERVATIONS, label: 'My Orders',     icon: '📦' },
+  { to: ROUTES.PROFILE,      label: 'My Profile',    icon: '👤' },
 ];
 
 function StudentLayoutInner() {
@@ -27,6 +28,19 @@ function StudentLayoutInner() {
   const cartCount = getCartCount();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const avatarRef = useRef<HTMLDivElement>(null);
+
+  // Close avatar dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (avatarRef.current && !avatarRef.current.contains(e.target as Node)) {
+        setAvatarOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   // Scroll lock
   useEffect(() => {
@@ -38,9 +52,10 @@ function StudentLayoutInner() {
     return () => document.body.classList.remove('drawer-open');
   }, [drawerOpen]);
 
-  // Close on route change
+  // Close drawers on route change
   useEffect(() => {
     setDrawerOpen(false);
+    setAvatarOpen(false);
   }, [location.pathname]);
 
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
@@ -151,56 +166,61 @@ function StudentLayoutInner() {
             <NotificationDropdown />
 
             {/* Avatar / profile dropdown — desktop only */}
-            <div className="hide-mobile" style={{ position: 'relative' }}>
-              <div className="group" style={{ cursor: 'pointer' }}>
+            <div className="hide-mobile" style={{ position: 'relative' }} ref={avatarRef}>
+              <button
+                className="btn-icon"
+                onClick={() => setAvatarOpen((v) => !v)}
+                aria-label="Profile menu"
+                style={{
+                  background: 'rgba(16,217,138,0.12)',
+                  border: '1px solid rgba(16,217,138,0.25)',
+                  color: 'var(--accent)',
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                }}
+              >
+                {userInitial}
+              </button>
+
+              {avatarOpen && (
                 <div
-                  className="btn-icon"
                   style={{
-                    background: 'rgba(16,217,138,0.12)',
-                    border: '1px solid rgba(16,217,138,0.25)',
-                    color: 'var(--accent)',
-                    fontWeight: 700,
-                    fontSize: '0.875rem',
-                  }}
-                >
-                  {userInitial}
-                </div>
-                <div
-                  className="absolute right-0 top-full mt-2 rounded-xl glass border shadow-xl flex flex-col overflow-hidden py-1"
-                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: 'calc(100% + 0.5rem)',
                     width: 200,
+                    background: '#0D1017',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: 'var(--r-xl)',
+                    boxShadow: 'var(--shadow-lg)',
                     zIndex: 50,
-                    opacity: 0,
-                    visibility: 'hidden',
-                    transform: 'scale(0.95)',
-                    transformOrigin: 'top right',
-                    transition: 'opacity 0.2s, transform 0.2s, visibility 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                    e.currentTarget.style.visibility = 'visible';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '0';
-                    e.currentTarget.style.visibility = 'hidden';
-                    e.currentTarget.style.transform = 'scale(0.95)';
+                    overflow: 'hidden',
+                    animation: 'fadeInFast 0.15s ease',
                   }}
                 >
                   <div style={{ padding: '0.875rem 1rem', borderBottom: '1px solid var(--glass-border)' }}>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Signed in as</p>
                     <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</p>
                   </div>
+                  <Link
+                    to={ROUTES.PROFILE}
+                    onClick={() => setAvatarOpen(false)}
+                    style={{ display: 'block', padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500, transition: 'background 0.2s' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--glass-bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                  >
+                    My Profile
+                  </Link>
                   <button
                     onClick={handleLogout}
-                    style={{ textAlign: 'left', padding: '0.75rem 1rem', fontSize: '0.875rem', color: '#FCA5A5', background: 'none', border: 'none', cursor: 'pointer', transition: 'background 0.2s', fontFamily: 'inherit', fontWeight: 500 }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    style={{ width: '100%', textAlign: 'left', padding: '0.75rem 1rem', fontSize: '0.875rem', color: '#FCA5A5', background: 'none', border: 'none', cursor: 'pointer', transition: 'background 0.2s', fontFamily: 'inherit', fontWeight: 500 }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
                   >
                     Sign Out
                   </button>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Mobile hamburger */}

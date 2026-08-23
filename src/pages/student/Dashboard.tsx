@@ -1,15 +1,35 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants';
+import { supabase } from '@/lib/supabase';
 
 export default function StudentDashboard() {
   const { user } = useAuth();
+  const [studentName, setStudentName] = useState<string>('');
+
+  // Fetch the student's actual name from the profiles table
+  // (user_metadata.name is only set for staff accounts, not students)
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        const d = data as { name?: string } | null;
+        if (d?.name) setStudentName(d.name.split(' ')[0]);
+      });
+  }, [user]);
+
+  const displayName = studentName || user?.email?.split('@')[0] || 'Student';
 
   const actionCards = [
     { to: ROUTES.ITEMS, icon: '🍔', title: 'Browse Canteen', desc: 'Reserve campus food instantly', color: 'var(--accent)' },
     { to: ROUTES.ITEMS, icon: '📚', title: 'Campus Bookstore', desc: 'Pre-order books and stationery', color: '#3B82F6' },
     { to: ROUTES.RESERVATIONS, icon: '📦', title: 'My Orders', desc: 'Track your pending pickups', color: '#F59E0B' },
-    { to: '#', icon: '🔔', title: 'Notifications', desc: 'Recent updates on your orders', color: '#8B5CF6' },
+    { to: ROUTES.PROFILE, icon: '👤', title: 'My Profile', desc: 'View and edit your details', color: '#8B5CF6' },
   ];
 
   return (
@@ -37,7 +57,7 @@ export default function StudentDashboard() {
           </div>
           <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0, lineHeight: 1.2 }}>
             Good to see you, <br className="hide-desktop" />
-            {(user as any)?.user_metadata?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'Student'} 👋
+            {displayName} 👋
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginTop: '1rem', maxWidth: 500 }}>
             Ready to skip the queue? Reserve your campus essentials instantly.

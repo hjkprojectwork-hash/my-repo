@@ -68,8 +68,31 @@ export default function ItemDetail() {
       <div className="glass-strong" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '0', borderRadius: 'var(--r-2xl)', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
         
         {/* Left: Image */}
-        <div style={{ background: 'var(--bg-elevated)', minHeight: '400px', position: 'relative' }}>
-          <img src={imgSrc} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ background: 'var(--bg-elevated)', minHeight: '400px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <img
+            src={imgSrc}
+            alt={item.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
+            onError={(e) => {
+              const target = e.currentTarget;
+              target.style.display = 'none';
+              const fallback = target.nextElementSibling as HTMLElement | null;
+              if (fallback) fallback.style.display = 'flex';
+            }}
+          />
+          {/* Emoji fallback for ItemDetail */}
+          <div
+            style={{
+              display: 'none',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '6rem',
+              position: 'absolute',
+              inset: 0,
+            }}
+          >
+            {getItemEmoji(item.category)}
+          </div>
           <div style={{ position: 'absolute', top: 20, right: 20 }}>
              <span className={`badge ${isAvailable ? 'badge-ready' : 'badge-cancelled'}`} style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', backdropFilter: 'blur(10px)' }}>
                {isAvailable ? `${item.available_quantity} in stock` : 'Sold Out'}
