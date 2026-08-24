@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import type { StudentProfile } from '@/types';
 import FormInput from '@/components/common/FormInput';
+import BackgroundLayer from '@/components/common/BackgroundLayer';
 
 export default function Profile() {
   const { user } = useAuth();
@@ -113,6 +114,7 @@ export default function Profile() {
   if (loading) {
     return (
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '2rem 0' }}>
+        <BackgroundLayer type="neutral" />
         <div className="skeleton" style={{ height: 200, borderRadius: 'var(--r-xl)', marginBottom: '1.5rem' }} />
         <div className="skeleton" style={{ height: 350, borderRadius: 'var(--r-xl)' }} />
       </div>

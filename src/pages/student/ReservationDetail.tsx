@@ -6,6 +6,7 @@ import type { Reservation, StudentProfile } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants';
+import { getWhatsAppUrl } from '@/utils/whatsapp';
 
 export default function ReservationDetail() {
   const { id } = useParams<{ id: string }>();
@@ -68,14 +69,27 @@ export default function ReservationDetail() {
   const generateWhatsAppUrl = () => {
     if (!reservation || !profile) return null;
     
-    const staffPhone = reservation.canteen?.staff_mobile;
+    // Attempt to use the stall's number, fallback to the environment variable for demo purposes
+    const staffPhone = reservation.canteen?.staff_mobile || import.meta.env.VITE_WHATSAPP_NUMBER;
     if (!staffPhone) return null;
-
-    const normalizedPhone = staffPhone.length === 10 ? `91${staffPhone}` : staffPhone;
+    
     const itemList = reservation.items?.map((item: any) => `• ${item.item_name} × ${item.quantity}`).join('\n') || '';
-    const message = `Hello CampusOne Staff 👋\n\nI have placed a reservation.\n\nReservation ID: ${reservation.reservation_code}\n\nStudent Name: ${profile.name}\nRoll Number: ${profile.rollNumber}\n\nItems:\n${itemList}\n\nTotal: ₹${reservation.total_amount}\n\nPlease prepare my order.\n\nThank you.`;
-    const encodedMessage = encodeURIComponent(message);
-    return `https://wa.me/${normalizedPhone}?text=${encodedMessage}`;
+    const message = `👋 Hello!
+
+I have placed a reservation at CampusOne.
+
+Student Name: ${profile.name}
+Roll Number: ${profile.rollNumber}
+
+Order:
+${itemList}
+
+Total: ₹${reservation.total_amount}
+Reservation ID: ${reservation.reservation_code}
+
+Please prepare my order.`;
+    
+    return getWhatsAppUrl(message, staffPhone);
   };
 
   if (loading) {
@@ -238,14 +252,15 @@ export default function ReservationDetail() {
                   rel="noopener noreferrer"
                   style={{ display: 'block', textDecoration: 'none' }}
                 >
-                  <button className="btn-primary" style={{ width: '100%', background: '#25D366', boxShadow: '0 8px 20px rgba(37,211,102,0.3)', color: '#fff', border: 'none', padding: '1.25rem', borderRadius: 'var(--r-lg)', fontWeight: 700, fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                  <button className="btn-whatsapp">
                     <span style={{ fontSize: '1.25rem' }}>💬</span> Notify Stall on WhatsApp
                   </button>
                 </a>
               ) : (
                 <div style={{ padding: '1.25rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--r-lg)', textAlign: 'center' }}>
                   <p style={{ fontSize: '0.9rem', color: 'var(--danger)' }}>
-                    WhatsApp notification is currently unavailable because this stall has not configured a contact number.
+                    WhatsApp unavailable<br/>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>The stall has not configured a WhatsApp number yet.</span>
                   </p>
                 </div>
               )}

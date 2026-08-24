@@ -15,7 +15,8 @@ const navItems = [
 
 const drawerItems = [
   { to: ROUTES.DASHBOARD,    label: 'Home',          icon: '🏠' },
-  { to: ROUTES.ITEMS,        label: 'Explore',       icon: '🍽️' },
+  { to: `${ROUTES.ITEMS}?shop=canteen`,   label: 'Canteen',       icon: '🍔' },
+  { to: `${ROUTES.ITEMS}?shop=bookstore`, label: 'Bookstore',     icon: '📚' },
   { to: ROUTES.CART,         label: 'Cart',          icon: '🛒' },
   { to: ROUTES.RESERVATIONS, label: 'My Orders',     icon: '📦' },
   { to: ROUTES.PROFILE,      label: 'My Profile',    icon: '👤' },
@@ -66,8 +67,10 @@ function StudentLayoutInner() {
   }
 
   function isActive(path: string) {
-    if (path === ROUTES.DASHBOARD) return location.pathname === path;
-    return location.pathname.startsWith(path);
+    const [basePath, search] = path.split('?');
+    if (basePath === ROUTES.DASHBOARD) return location.pathname === basePath;
+    if (search) return location.pathname.startsWith(basePath) && location.search.includes(search);
+    return location.pathname.startsWith(basePath);
   }
 
   const userInitial = user?.email?.charAt(0).toUpperCase() || '?';

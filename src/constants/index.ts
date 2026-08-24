@@ -60,3 +60,6 @@ export const ROUTES = {
   // Errors
   NOT_FOUND: '*',
 } as const;
+
+/** Central WhatsApp configuration */
+export const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '919059297815';

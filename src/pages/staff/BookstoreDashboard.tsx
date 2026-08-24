@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/constants';
 import { getPendingReservationCount } from '@/services/staff.service';
+import BackgroundLayer from '@/components/common/BackgroundLayer';
 
 export default function BookstoreDashboard() {
   const [pendingCount, setPendingCount] = useState<number>(0);
@@ -22,7 +23,8 @@ export default function BookstoreDashboard() {
   }, []);
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', animation: 'fadeIn 0.4s ease' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', animation: 'fadeIn 0.4s ease', padding: '1rem' }}>
+      <BackgroundLayer type="staff" />
       
       <div className="page-header">
         <h1>Bookstore Dashboard</h1>

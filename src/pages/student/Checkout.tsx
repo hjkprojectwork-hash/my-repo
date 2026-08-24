@@ -5,6 +5,7 @@ import { useCart } from '@/contexts/CartContext';
 import { createReservation } from '@/services/reservation.service';
 import { supabase } from '@/lib/supabase';
 import { ROUTES } from '@/constants';
+import BackgroundLayer from '@/components/common/BackgroundLayer';
 
 import type { StudentProfile } from '@/types';
 
@@ -87,6 +88,7 @@ export default function Checkout() {
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', animation: 'fadeIn 0.4s ease' }}>
+      <BackgroundLayer type="neutral" />
       
       <button 
         onClick={() => navigate(ROUTES.CART)} 

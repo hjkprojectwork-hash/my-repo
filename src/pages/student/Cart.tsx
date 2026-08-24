@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { getItemImage, getItemEmoji } from '@/services/imageMap';
 import { ROUTES } from '@/constants';
+import BackgroundLayer from '@/components/common/BackgroundLayer';
 
 export default function Cart() {
   const { cart, removeFromCart, updateQuantity, clearCart, getCartTotal, getCartCount } = useCart();
@@ -24,7 +25,8 @@ export default function Cart() {
   const total = getCartTotal();
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', animation: 'fadeIn 0.3s ease' }}>
+    <div style={{ maxWidth: 800, margin: '0 auto', animation: 'fadeIn 0.4s ease' }}>
+      <BackgroundLayer type="product" />
       
       <div className="page-header" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '2rem' }}>
         <div>
@@ -45,8 +47,33 @@ export default function Cart() {
           return (
             <div key={ci.item.id} className="glass" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1rem', borderRadius: 'var(--r-lg)', animation: `staggerIn 0.3s ease ${idx * 0.05}s both` }}>
               
-              <div style={{ width: 72, height: 72, background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                <img src={imgSrc} alt={ci.item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div style={{ width: 72, height: 72, background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+                <img 
+                  src={imgSrc} 
+                  alt={ci.item.name} 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement | null;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+                <div
+                  style={{
+                    display: 'none',
+                    width: '100%',
+                    height: '100%',
+                    background: 'var(--bg-elevated)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '2rem',
+                    position: 'absolute',
+                    inset: 0
+                  }}
+                >
+                  {getItemEmoji(ci.item.category)}
+                </div>
               </div>
               
               <div style={{ flex: 1, minWidth: 0 }}>

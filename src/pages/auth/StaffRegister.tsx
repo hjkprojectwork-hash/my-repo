@@ -110,7 +110,7 @@ export default function StaffRegister() {
   if (successMessage) {
     return (
       <div className="has-bg-image" style={{ minHeight: 'calc(100vh - 60px)' }}>
-        <div className="bg-layer" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1541844053589-346841d0b34c?w=1920&q=80")' }} />
+        <div className="bg-layer bg-auth" />
         <div style={{ minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.5rem', position: 'relative', zIndex: 10 }}>
           <div className="glass-strong" style={{ maxWidth: 440, width: '100%', padding: '3rem 2.5rem', borderRadius: 'var(--r-xl)', textAlign: 'center', boxShadow: 'var(--shadow-lg)', animation: 'slideInUp 0.4s ease' }}>
             <div style={{ fontSize: '3.5rem', marginBottom: '1.25rem' }}>✅</div>
@@ -127,7 +127,7 @@ export default function StaffRegister() {
 
   return (
     <div className="has-bg-image" style={{ minHeight: 'calc(100vh - 60px)' }}>
-      <div className="bg-layer" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1541844053589-346841d0b34c?w=1920&q=80")' }} />
+      <div className="bg-layer bg-auth" />
       
       <div style={{ minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.5rem', position: 'relative', zIndex: 10 }}>
         <div style={{ width: '100%', maxWidth: 480, animation: 'slideInUp 0.4s ease forwards' }}>

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { ROUTES } from '@/constants';
 import { getMyReservations } from '@/services/reservation.service';
 import type { Reservation } from '@/types';
+import BackgroundLayer from '@/components/common/BackgroundLayer';
 
 export default function Reservations() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -74,7 +75,8 @@ export default function Reservations() {
   );
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', animation: 'fadeIn 0.4s ease' }}>
+    <div style={{ maxWidth: 1000, margin: '0 auto', minHeight: 'calc(100vh - 60px)', animation: 'fadeIn 0.4s ease' }}>
+      <BackgroundLayer type="dashboard" />
       <div className="page-header">
         <h1>My Orders</h1>
         <p>Track and manage your campus reservations.</p>

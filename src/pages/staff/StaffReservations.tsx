@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { getShopReservations, updateReservationStatus, getCurrentStaffProfile } from '@/services/staff.service';
 import type { Reservation, StaffProfile } from '@/types';
 import { supabase } from '@/lib/supabase';
+import BackgroundLayer from '@/components/common/BackgroundLayer';
 
 export default function StaffReservations() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -99,7 +100,8 @@ export default function StaffReservations() {
   const filtered = filter === 'all' ? reservations : reservations.filter(r => r.status === filter);
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', animation: 'fadeIn 0.4s ease' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', minHeight: 'calc(100vh - 60px)', animation: 'fadeIn 0.4s ease', padding: '1rem' }}>
+      <BackgroundLayer type="staff" />
       
       {/* Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>

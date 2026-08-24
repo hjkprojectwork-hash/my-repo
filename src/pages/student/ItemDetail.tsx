@@ -4,6 +4,7 @@ import { getItemById } from '@/services/items.service';
 import { useCart } from '@/contexts/CartContext';
 import { getItemImage, getItemEmoji } from '@/services/imageMap';
 import type { Item } from '@/types';
+import BackgroundLayer from '@/components/common/BackgroundLayer';
 
 export default function ItemDetail() {
   const { id } = useParams<{ id: string }>();

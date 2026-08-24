@@ -80,30 +80,30 @@ export default function MainLayout() {
           }}
         >
           {/* Logo */}
-          <Link to={ROUTES.HOME} aria-label="CampusOne home">
+          <Link to={ROUTES.HOME} aria-label="CampusOne home" style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
             <Logo size="sm" />
           </Link>
 
           {/* Desktop right actions */}
-          <div className="hide-mobile" style={{ alignItems: 'center', gap: '0.5rem' }}>
+          <div className="hide-mobile" style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', alignItems: 'center' }}>
             {isAuthenticated ? (
               <>
                 <Link to={appLink.to}>
-                  <button className="btn-secondary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem', borderRadius: '9999px' }}>
+                  <button style={{ background: '#6366F1', color: '#fff', border: 'none', padding: '0.5rem 1.25rem', fontSize: '0.875rem', borderRadius: '9999px', fontWeight: 600, cursor: 'pointer' }}>
                     {appLink.label}
                   </button>
                 </Link>
-                <button className="btn-ghost" style={{ fontSize: '0.875rem' }} onClick={handleLogout}>
+                <button className="btn-ghost" style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }} onClick={handleLogout}>
                   Sign Out
                 </button>
               </>
             ) : (
               <>
                 <Link to={ROUTES.LOGIN}>
-                  <button className="btn-ghost" style={{ fontSize: '0.875rem' }}>Sign In</button>
+                  <button className="btn-ghost" style={{ fontSize: '0.875rem', padding: '0.5rem 1rem', borderRadius: '9999px', color: '#fff' }}>Sign In</button>
                 </Link>
                 <Link to={ROUTES.REGISTER}>
-                  <button className="btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem' }}>
+                  <button style={{ background: '#6366F1', color: '#fff', border: 'none', padding: '0.5rem 1.25rem', fontSize: '0.875rem', borderRadius: '9999px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)' }}>
                     Get Started
                   </button>
                 </Link>

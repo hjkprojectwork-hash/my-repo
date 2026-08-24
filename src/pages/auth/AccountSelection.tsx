@@ -42,7 +42,7 @@ export default function AccountSelection() {
 
   return (
     <div className="has-bg-image" style={{ minHeight: 'calc(100vh - 60px)' }}>
-      <div className="bg-layer" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1541844053589-346841d0b34c?w=1920&q=80")' }} />
+      <div className="bg-layer bg-auth" />
       
       <div
         style={{

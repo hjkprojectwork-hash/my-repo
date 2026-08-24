@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { getActiveCanteens, getAvailableItems } from '@/services/items.service';
 import { useCart } from '@/contexts/CartContext';
 import { getItemImage, getItemEmoji } from '@/services/imageMap';
 import type { Canteen, Item } from '@/types';
 import { ROUTES } from '@/constants';
+import BackgroundLayer from '@/components/common/BackgroundLayer';
 
 export default function Items() {
   const [canteens, setCanteens] = useState<Canteen[]>([]);
@@ -12,9 +13,22 @@ export default function Items() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [searchParams] = useSearchParams();
+  const shopQuery = searchParams.get('shop');
+
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedCanteen, setSelectedCanteen] = useState<string>('All');
+
+  // Match the shop query to a canteen ID if possible
+  useEffect(() => {
+    if (shopQuery && canteens.length > 0) {
+      const match = canteens.find(c => c.type === shopQuery || c.name.toLowerCase().includes(shopQuery.toLowerCase()));
+      if (match) setSelectedCanteen(match.id);
+    } else {
+      setSelectedCanteen('All');
+    }
+  }, [shopQuery, canteens]);
 
   const { addToCart } = useCart();
 
@@ -59,11 +73,12 @@ export default function Items() {
   if (error) return <div className="empty-state"><span className="empty-state-icon">⚠️</span><h3>Error</h3><p>{error}</p></div>;
 
   return (
-    <div style={{ animation: 'fadeIn 0.4s ease' }}>
+    <div style={{ padding: '1rem', maxWidth: 1200, margin: '0 auto', minHeight: 'calc(100vh - 60px)', animation: 'fadeIn 0.4s ease' }}>
+      <BackgroundLayer type={shopQuery === 'canteen' ? 'canteen' : 'bookstore'} />
       
       <div className="page-header">
-        <h1>Explore Campus</h1>
-        <p>Find what you need and pick it up instantly.</p>
+        <h1>{shopQuery === 'canteen' ? 'Campus Canteen' : shopQuery === 'bookstore' ? 'Campus Bookstore' : 'Explore Campus'}</h1>
+        <p>{shopQuery === 'canteen' ? 'Warm food & cafeteria' : shopQuery === 'bookstore' ? 'Books & essentials' : 'Find what you need and pick it up instantly.'}</p>
       </div>
 
       {/* Filters */}
@@ -132,6 +147,7 @@ export default function Items() {
         <div className="grid-products">
           {filteredItems.map(item => {
             const isAvailable = item.is_available && item.available_quantity > 0;
+            const stockStatus = !isAvailable ? 'out' : item.available_quantity <= 10 ? 'low' : 'good';
             const imgSrc = getItemImage(item.image_url, item.category);
 
             return (
@@ -154,7 +170,7 @@ export default function Items() {
                       style={{
                         display: 'none',
                         width: '100%',
-                        aspectRatio: '4/3',
+                        aspectRatio: '3/2',
                         background: 'var(--bg-elevated)',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -165,8 +181,8 @@ export default function Items() {
                     </div>
                   </Link>
                   <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
-                    <span className={`badge ${isAvailable ? 'badge-ready' : 'badge-cancelled'}`}>
-                      {isAvailable ? `${item.available_quantity} left` : 'Sold Out'}
+                    <span className={`badge ${stockStatus === 'good' ? 'badge-ready' : stockStatus === 'low' ? 'badge-pending' : 'badge-cancelled'}`}>
+                      {stockStatus === 'out' ? 'Sold Out' : stockStatus === 'low' ? `Only ${item.available_quantity} left` : `${item.available_quantity} left`}
                     </span>
                   </div>
                 </div>
