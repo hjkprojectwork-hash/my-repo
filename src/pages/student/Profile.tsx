@@ -24,11 +24,12 @@ export default function Profile() {
     if (!user) return;
     const fetchProfile = async () => {
       try {
-        const { data, error: dbError } = await supabase
+        const { data: rawData, error: dbError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
+        const data = rawData as any;
         if (dbError) throw dbError;
         if (data) {
           const p: StudentProfile = {
@@ -72,7 +73,7 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      const { error: dbError } = await supabase
+      const { error: dbError } = await (supabase as any)
         .from('profiles')
         .update({
           name: editName.trim(),
