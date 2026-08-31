@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getActiveCanteens, getAvailableItems } from '@/services/items.service';
 import { useCart } from '@/contexts/CartContext';
-import { getItemImage, getItemEmoji } from '@/services/imageMap';
+import { getItemImage, getItemImageFallback, getItemEmoji } from '@/services/imageMap';
 import type { Canteen, Item } from '@/types';
 import { ROUTES } from '@/constants';
 import BackgroundLayer from '@/components/common/BackgroundLayer';
@@ -74,7 +74,7 @@ export default function Items() {
 
   return (
     <div style={{ padding: '1rem', maxWidth: 1200, margin: '0 auto', minHeight: 'calc(100vh - 60px)', animation: 'fadeIn 0.4s ease' }}>
-      <BackgroundLayer type={shopQuery === 'canteen' ? 'canteen' : 'bookstore'} />
+      <BackgroundLayer type={shopQuery === 'canteen' ? 'canteen' : 'bookstore'} overlayOpacity={0.80} />
       
       <div className="page-header">
         <h1>{shopQuery === 'canteen' ? 'Campus Canteen' : shopQuery === 'bookstore' ? 'Campus Bookstore' : 'Explore Campus'}</h1>
@@ -160,6 +160,13 @@ export default function Items() {
                       className="product-card-img"
                       onError={(e) => {
                         const target = e.currentTarget;
+                        // Stage 1 fail → try Unsplash CDN fallback
+                        const cdnSrc = getItemImageFallback(item.category);
+                        if (target.src !== cdnSrc) {
+                          target.src = cdnSrc;
+                          return;
+                        }
+                        // Stage 2 fail → show emoji div
                         target.style.display = 'none';
                         const fallback = target.nextElementSibling as HTMLElement | null;
                         if (fallback) fallback.style.display = 'flex';

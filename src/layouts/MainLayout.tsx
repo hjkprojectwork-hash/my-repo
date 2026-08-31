@@ -128,7 +128,7 @@ export default function MainLayout() {
       </header>
 
       {/* ── Main content ── */}
-      <main style={{ flex: 1 }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Outlet />
       </main>
 

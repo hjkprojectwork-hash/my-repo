@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/constants';
@@ -65,7 +64,7 @@ export default function Reservations() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '1rem', borderTop: '1px dashed var(--glass-border)' }}>
         <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--accent)' }}>₹{res.total_amount}</span>
-        <Link to={`/reservations/${res.id}`} style={{ textDecoration: 'none' }}>
+        <Link to={ROUTES.RESERVATION_DETAIL.replace(':id', res.id)} style={{ textDecoration: 'none' }}>
           <button className="btn-secondary" style={{ padding: '0.5rem 1rem', minHeight: 36, fontSize: '0.85rem' }}>
             View Details
           </button>

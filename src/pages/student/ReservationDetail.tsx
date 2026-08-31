@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getReservationById, cancelReservation } from '@/services/reservation.service';
@@ -7,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants';
 import { getWhatsAppUrl } from '@/utils/whatsapp';
+import BackgroundLayer from '@/components/common/BackgroundLayer';
 
 export default function ReservationDetail() {
   const { id } = useParams<{ id: string }>();
@@ -26,11 +26,12 @@ export default function ReservationDetail() {
         const resData = await getReservationById(id);
         setReservation(resData);
         
-        const { data: profData } = await supabase
+        const { data: rawProfData } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
+        const profData = rawProfData as any;
         if (profData) {
           setProfile({
             id: profData.id,
@@ -117,6 +118,7 @@ Please prepare my order.`;
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', animation: 'fadeIn 0.4s ease' }}>
+      <BackgroundLayer type="neutral" />
       
       <button 
         onClick={() => navigate(ROUTES.RESERVATIONS)} 

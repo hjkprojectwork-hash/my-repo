@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { ROUTES } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import Logo from '@/components/common/Logo';
+import BackgroundLayer from '@/components/common/BackgroundLayer';
 
 const options = [
   {
@@ -41,12 +42,13 @@ export default function AccountSelection() {
   }, [user, loading, navigate]);
 
   return (
-    <div className="has-bg-image" style={{ minHeight: 'calc(100vh - 60px)' }}>
-      <div className="bg-layer bg-auth" />
-      
+    <div style={{ flex: 1, position: 'relative' }}>
+      <BackgroundLayer type="login" overlayOpacity={0.72} />
+
       <div
         style={{
-          minHeight: '100%',
+          flex: 1,
+          minHeight: 'calc(100vh - 60px)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

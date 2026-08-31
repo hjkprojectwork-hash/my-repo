@@ -11,10 +11,9 @@ export interface Database {
       profiles: {
         Row: {
           id: string;
-          user_id: string;
           name: string;
           roll_number: string;
-          mobile_number: string;
+          mobile: string;
           class_section: string;
           year: string;
           created_at: string;
@@ -22,10 +21,9 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          user_id: string;
           name: string;
           roll_number: string;
-          mobile_number: string;
+          mobile: string;
           class_section: string;
           year: string;
           created_at?: string;

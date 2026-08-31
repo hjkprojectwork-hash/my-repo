@@ -134,29 +134,30 @@ export default function Landing() {
                 fontSize: '0.95rem'
               }}
             />
-            <Link to={ROUTES.REGISTER}>
-              <button 
-                style={{ 
-                  background: '#6366F1', // Purple/blue pill from screenshot
-                  color: '#fff',
-                  border: 'none',
-                  padding: '0.75rem 1.5rem', 
-                  fontSize: '0.95rem',
-                  fontWeight: 600,
-                  borderRadius: '9999px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)'
-                }}
-              >
-                Get Started
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-              </button>
+            <Link
+              to={ROUTES.REGISTER}
+              style={{ 
+                background: '#6366F1',
+                color: '#fff',
+                border: 'none',
+                padding: '0.75rem 1.5rem', 
+                fontSize: '0.95rem',
+                fontWeight: 600,
+                borderRadius: '9999px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)',
+                textDecoration: 'none',
+                flexShrink: 0,
+              }}
+            >
+              Get Started
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
             </Link>
           </div>
         </div>

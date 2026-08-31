@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getItemById } from '@/services/items.service';
 import { useCart } from '@/contexts/CartContext';
-import { getItemImage, getItemEmoji } from '@/services/imageMap';
+import { getItemImage, getItemImageFallback, getItemEmoji } from '@/services/imageMap';
 import type { Item } from '@/types';
 import BackgroundLayer from '@/components/common/BackgroundLayer';
 
@@ -55,7 +55,8 @@ export default function ItemDetail() {
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', animation: 'fadeIn 0.4s ease' }}>
-      
+      <BackgroundLayer type="product" overlayOpacity={0.88} />
+
       <button 
         onClick={() => navigate(-1)} 
         style={{ marginBottom: '1.5rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', cursor: 'pointer', transition: 'color 0.2s' }}
@@ -76,6 +77,13 @@ export default function ItemDetail() {
             style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
             onError={(e) => {
               const target = e.currentTarget;
+              // Stage 1 fail → try Unsplash CDN fallback
+              const cdnSrc = getItemImageFallback(item.category);
+              if (target.src !== cdnSrc) {
+                target.src = cdnSrc;
+                return;
+              }
+              // Stage 2 fail → show emoji div
               target.style.display = 'none';
               const fallback = target.nextElementSibling as HTMLElement | null;
               if (fallback) fallback.style.display = 'flex';

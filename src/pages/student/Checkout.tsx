@@ -185,10 +185,16 @@ export default function Checkout() {
             style={{ width: '100%', padding: '1.25rem', fontSize: '1.1rem', height: 'auto' }}
           >
             {submitting ? (
-              <>
-                <span className="animate-spin" style={{ display: 'inline-block', width: 20, height: 20, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%' }}></span>
-                Confirming...
-              </>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.625rem' }}>
+                <svg
+                  style={{ animation: 'spin 0.8s linear infinite', flexShrink: 0 }}
+                  width="20" height="20" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" strokeWidth="2.5"
+                >
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                Confirming Reservation…
+              </span>
             ) : (
               'Confirm Reservation'
             )}

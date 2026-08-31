@@ -45,9 +45,9 @@ export default function Cart() {
           const imgSrc = getItemImage(ci.item.image_url, ci.item.category);
           
           return (
-            <div key={ci.item.id} className="glass" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1rem', borderRadius: 'var(--r-lg)', animation: `staggerIn 0.3s ease ${idx * 0.05}s both` }}>
+            <div key={ci.item.id} className="glass" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', borderRadius: 'var(--r-lg)', animation: `staggerIn 0.3s ease ${idx * 0.05}s both`, flexWrap: 'wrap' }}>
               
-              <div style={{ width: 72, height: 72, background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+              <div style={{ width: 64, height: 64, background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
                 <img 
                   src={imgSrc} 
                   alt={ci.item.name} 
@@ -67,7 +67,7 @@ export default function Cart() {
                     background: 'var(--bg-elevated)',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '2rem',
+                    fontSize: '1.75rem',
                     position: 'absolute',
                     inset: 0
                   }}
@@ -76,33 +76,37 @@ export default function Cart() {
                 </div>
               </div>
               
+              {/* Name + category — grows to fill */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <h3 style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1.1rem', marginBottom: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <h3 style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {ci.item.name}
                 </h3>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                  {getItemEmoji(ci.item.category)} {ci.item.category} • ₹{ci.item.price}
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  {getItemEmoji(ci.item.category)} {ci.item.category} &bull; ₹{ci.item.price} each
                 </p>
               </div>
 
-              <div className="qty-selector hide-mobile">
-                <button className="qty-btn" onClick={() => updateQuantity(ci.item.id, ci.quantity - 1)}>-</button>
-                <span className="qty-value">{ci.quantity}</span>
-                <button className="qty-btn" disabled={ci.quantity >= ci.item.available_quantity} onClick={() => updateQuantity(ci.item.id, ci.quantity + 1)}>+</button>
-              </div>
+              {/* Qty + subtotal row — always visible */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
+                <div className="qty-selector">
+                  <button className="qty-btn" onClick={() => updateQuantity(ci.item.id, ci.quantity - 1)}>-</button>
+                  <span className="qty-value">{ci.quantity}</span>
+                  <button className="qty-btn" disabled={ci.quantity >= ci.item.available_quantity} onClick={() => updateQuantity(ci.item.id, ci.quantity + 1)}>+</button>
+                </div>
 
-              <div style={{ fontWeight: 800, width: '80px', textAlign: 'right', color: 'var(--text-primary)', fontSize: '1.1rem' }}>
-                ₹{ci.item.price * ci.quantity}
-              </div>
+                <div style={{ fontWeight: 800, minWidth: 60, textAlign: 'right', color: 'var(--text-primary)', fontSize: '1.05rem' }}>
+                  ₹{ci.item.price * ci.quantity}
+                </div>
 
-              <button 
-                onClick={() => removeFromCart(ci.item.id)}
-                className="btn-icon"
-                style={{ width: 32, height: 32, color: 'var(--danger)' }}
-                aria-label="Remove item"
-              >
-                ✕
-              </button>
+                <button 
+                  onClick={() => removeFromCart(ci.item.id)}
+                  className="btn-icon"
+                  style={{ width: 32, height: 32, color: 'var(--danger)', flexShrink: 0 }}
+                  aria-label="Remove item"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           );
         })}
