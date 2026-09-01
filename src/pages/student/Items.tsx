@@ -24,9 +24,9 @@ export default function Items() {
   useEffect(() => {
     if (shopQuery && canteens.length > 0) {
       const match = canteens.find(c => c.type === shopQuery || c.name.toLowerCase().includes(shopQuery.toLowerCase()));
-      if (match) setSelectedCanteen(match.id);
+      if (match) setTimeout(() => setSelectedCanteen(match.id), 0);
     } else {
-      setSelectedCanteen('All');
+      setTimeout(() => setSelectedCanteen('All'), 0);
     }
   }, [shopQuery, canteens]);
 

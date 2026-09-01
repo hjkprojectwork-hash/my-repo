@@ -34,7 +34,7 @@ export default function MainLayout() {
 
   // Close drawer on route change
   useEffect(() => {
-    setDrawerOpen(false);
+    setTimeout(() => setDrawerOpen(false), 0);
   }, [location.pathname]);
 
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);

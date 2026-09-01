@@ -38,7 +38,7 @@ export default function StaffLayout({ shopType }: StaffLayoutProps) {
     return () => document.body.classList.remove('drawer-open');
   }, [drawerOpen]);
 
-  useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
+  useEffect(() => { setTimeout(() => setDrawerOpen(false), 0); }, [location.pathname]);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 
   async function handleLogout() {

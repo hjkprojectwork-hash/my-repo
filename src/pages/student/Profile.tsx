@@ -50,6 +50,7 @@ export default function Profile() {
           setEditYear(data.year);
         }
       } catch (err: any) {
+        console.error('Failed to fetch profile:', err);
         setError('Unable to load profile.');
       } finally {
         setLoading(false);

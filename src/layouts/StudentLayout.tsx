@@ -55,8 +55,10 @@ function StudentLayoutInner() {
 
   // Close drawers on route change
   useEffect(() => {
-    setDrawerOpen(false);
-    setAvatarOpen(false);
+    setTimeout(() => {
+      setDrawerOpen(false);
+      setAvatarOpen(false);
+    }, 0);
   }, [location.pathname]);
 
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);

@@ -141,14 +141,12 @@ function ArrowButton({ to, color = 'var(--accent)' }: { to: string; color?: stri
 export default function StudentDashboard() {
   const { user } = useAuth();
   const [studentName, setStudentName] = useState<string>('');
-  const [greeting, setGreeting] = useState('Hello');
-
-  useEffect(() => {
+  const [greeting] = useState(() => {
     const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Good morning');
-    else if (hour < 17) setGreeting('Good afternoon');
-    else setGreeting('Good evening');
-  }, []);
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  });
 
   useEffect(() => {
     if (!user) return;
