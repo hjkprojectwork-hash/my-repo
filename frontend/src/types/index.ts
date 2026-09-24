@@ -164,10 +164,39 @@ export interface Reservation {
   canteen_id: string;
   status: ReservationStatus;
   total_amount: number;
+  /** Machine-readable QR token (UUID). Generated server-side. */
+  qr_token?: string;
+  /** 'canteen' or 'bookstore' — derived from canteens.type at creation time. */
+  order_type?: 'canteen' | 'bookstore';
   created_at: string;
   updated_at: string;
   canteen?: Partial<Canteen>; // Sometimes joined
   items?: ReservationItem[]; // Sometimes joined
+}
+
+/**
+ * Shape returned by the get_reservation_by_qr_token RPC.
+ * Contains safe reservation data — no sensitive tokens.
+ */
+export interface QRReservationResult {
+  id: string;
+  reservation_code: string;
+  status: ReservationStatus;
+  total_amount: number;
+  order_type: 'canteen' | 'bookstore';
+  created_at: string;
+  student: {
+    name: string;
+    roll_number: string;
+    mobile: string;
+  };
+  items: Array<{
+    id: string;
+    item_name: string;
+    quantity: number;
+    unit_price: number;
+    subtotal: number;
+  }>;
 }
 
 export interface ReservationItem {

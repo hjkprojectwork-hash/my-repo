@@ -53,7 +53,7 @@ export default function Button({
     inlineStyle.color = '#fff';
     inlineStyle.border = 'none';
   } else if (isSuccess) {
-    inlineStyle.background = '#25D366'; // WhatsApp Green
+    inlineStyle.background = '#10D996'; // Success green
     inlineStyle.color = '#fff';
     inlineStyle.border = 'none';
   }

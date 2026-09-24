@@ -3,15 +3,19 @@ import { useEffect, useState, useCallback } from 'react';
 import { getShopReservations, updateReservationStatus, getCurrentStaffProfile } from '@/services/staff.service';
 import type { Reservation, StaffProfile } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 import BackgroundLayer from '@/components/common/BackgroundLayer';
+import QRScanner from '@/components/staff/QRScanner';
 
 export default function StaffReservations() {
+  const { user } = useAuth();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [profile, setProfile] = useState<StaffProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
 
   const fetchReservations = useCallback(async () => {
     try {
@@ -41,7 +45,7 @@ export default function StaffReservations() {
     init();
   }, [fetchReservations]);
 
-  // Realtime updates
+  // Realtime: auto-refresh when any reservation in this shop changes
   useEffect(() => {
     if (!profile?.shopId) return;
     
@@ -99,17 +103,63 @@ export default function StaffReservations() {
 
   const filtered = filter === 'all' ? reservations : reservations.filter(r => r.status === filter);
 
+  const isCanteenStaff = user?.role === 'canteen_staff';
+
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', minHeight: 'calc(100vh - 60px)', animation: 'fadeIn 0.4s ease', padding: '1rem' }}>
       <BackgroundLayer type="staff" />
-      
+
+      {/* QR Scanner Modal */}
+      {showScanner && (
+        <QRScanner
+          onClose={() => setShowScanner(false)}
+          onStatusUpdated={() => {
+            fetchReservations();
+            setShowScanner(false);
+          }}
+        />
+      )}
+
+      {/* Header with QR Scan Button */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+            Manage Orders
+          </h1>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: 0, marginTop: '0.25rem' }}>
+            {reservations.length} total orders
+          </p>
+        </div>
+
+        {/* QR Scan Button — Canteen Staff Only */}
+        {isCanteenStaff && (
+          <button
+            onClick={() => setShowScanner(true)}
+            className="btn-primary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '0.875rem 1.75rem',
+              fontSize: '1rem',
+              fontWeight: 700,
+              borderRadius: 'var(--r-lg)',
+              animation: 'pulse 3s ease-in-out infinite',
+            }}
+          >
+            <span style={{ fontSize: '1.25rem' }}>📷</span>
+            Scan Student QR
+          </button>
+        )}
+      </div>
+
       {/* Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
         {[
-          { label: 'Pending', count: counts.pending, color: 'var(--status-pending)', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.2)' },
-          { label: 'Confirmed', count: counts.confirmed, color: 'var(--status-confirmed)', bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.2)' },
-          { label: 'Ready', count: counts.ready, color: 'var(--status-ready)', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.2)' },
-          { label: 'Collected', count: counts.collected, color: '#A5B4FC', bg: 'rgba(99,102,241,0.1)', border: 'rgba(99,102,241,0.2)' },
+          { label: 'Pending',   count: counts.pending,   color: 'var(--status-pending)',   bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.2)' },
+          { label: 'Preparing', count: counts.confirmed,  color: 'var(--status-confirmed)', bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.2)' },
+          { label: 'Ready',     count: counts.ready,      color: 'var(--status-ready)',     bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.2)' },
+          { label: 'Collected', count: counts.collected,  color: '#A5B4FC',                 bg: 'rgba(99,102,241,0.1)', border: 'rgba(99,102,241,0.2)' },
         ].map(stat => (
           <div key={stat.label} className="glass" style={{ background: stat.bg, border: `1px solid ${stat.border}`, borderRadius: 'var(--r-xl)', padding: '1.5rem', textAlign: 'center' }}>
             <p style={{ fontSize: '0.85rem', color: stat.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>{stat.label}</p>
@@ -118,6 +168,7 @@ export default function StaffReservations() {
         ))}
       </div>
 
+      {/* Filter Tabs */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2.5rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none' }}>
         {['all', 'pending', 'confirmed', 'ready', 'collected'].map(f => (
           <button
@@ -136,11 +187,12 @@ export default function StaffReservations() {
               boxShadow: filter === f ? 'var(--shadow-glow)' : 'none'
             }}
           >
-            {f}
+            {f === 'confirmed' ? 'preparing' : f}
           </button>
         ))}
       </div>
 
+      {/* Reservation List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {filtered.length === 0 ? (
           <div className="empty-state glass" style={{ padding: '4rem 2rem' }}>
@@ -155,7 +207,9 @@ export default function StaffReservations() {
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{res.reservation_code}</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>{new Date(res.created_at).toLocaleString()}</p>
                 <div style={{ background: 'var(--bg-elevated)', padding: '1rem', borderRadius: 'var(--r-lg)', border: '1px solid var(--glass-border)' }}>
-                  <p style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{res.student?.name} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({res.student?.roll_number})</span></p>
+                  <p style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                    {res.student?.name} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({res.student?.roll_number})</span>
+                  </p>
                   <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', marginTop: '0.25rem' }}>📞 {res.student?.mobile}</p>
                 </div>
               </div>
@@ -164,7 +218,7 @@ export default function StaffReservations() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: 'var(--glass-bg)', padding: '1.25rem', borderRadius: 'var(--r-lg)', border: '1px dashed var(--glass-border)' }}>
                   {res.items?.map((item: any) => (
                     <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                      <span style={{ color: 'var(--text-primary)' }}>{item.quantity}x {item.item_name}</span>
+                      <span style={{ color: 'var(--text-primary)' }}>{item.quantity}× {item.item_name}</span>
                       <span style={{ fontWeight: 600, color: 'var(--accent)' }}>₹{item.subtotal}</span>
                     </div>
                   ))}
@@ -177,7 +231,7 @@ export default function StaffReservations() {
 
               <div style={{ flex: '1 1 180px', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-end', justifyContent: 'center' }}>
                 <span className={`badge badge-${res.status}`} style={{ padding: '0.5rem 1rem' }}>
-                  {res.status}
+                  {res.status === 'confirmed' ? 'preparing' : res.status}
                 </span>
 
                 {res.status === 'pending' && (

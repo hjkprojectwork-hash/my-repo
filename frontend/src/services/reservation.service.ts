@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { Reservation, CartItem } from '@/types';
+import type { Reservation, CartItem, QRReservationResult } from '@/types';
 
 export const createReservation = async (canteenId: string, items: CartItem[]): Promise<string> => {
   const p_items = items.map(ci => ({
@@ -55,4 +55,21 @@ export const cancelReservation = async (id: string): Promise<void> => {
     .eq('status', 'pending'); // only pending reservations can be cancelled by student
 
   if (error) throw error;
+};
+
+/**
+ * Looks up a reservation by QR token.
+ * Called by canteen staff after scanning a student's QR code.
+ * The RPC enforces: authenticated canteen_staff + shop ownership + order_type=canteen + valid status.
+ */
+export const getReservationByQrToken = async (token: string): Promise<QRReservationResult> => {
+  const { data, error } = await (supabase as any).rpc('get_reservation_by_qr_token', {
+    p_qr_token: token
+  });
+
+  if (error) {
+    throw new Error(error.message || 'Invalid or unrecognized QR code.');
+  }
+
+  return data as QRReservationResult;
 };

@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getReservationById, cancelReservation } from '@/services/reservation.service';
 import type { Reservation, StudentProfile } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants';
-import { getWhatsAppUrl } from '@/utils/whatsapp';
 import BackgroundLayer from '@/components/common/BackgroundLayer';
+import ReservationQRCode from '@/components/student/ReservationQRCode';
 
 export default function ReservationDetail() {
   const { id } = useParams<{ id: string }>();
@@ -19,13 +19,23 @@ export default function ReservationDetail() {
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchReservation = useCallback(async () => {
+    if (!id) return;
+    try {
+      const resData = await getReservationById(id);
+      setReservation(resData);
+    } catch {
+      setError('Unable to load reservation details.');
+    }
+  }, [id]);
+
   useEffect(() => {
     if (!id || !user) return;
-    const fetchData = async () => {
+    const init = async () => {
       try {
         const resData = await getReservationById(id);
         setReservation(resData);
-        
+
         const { data: rawProfData } = await supabase
           .from('profiles')
           .select('*')
@@ -51,8 +61,32 @@ export default function ReservationDetail() {
         setLoading(false);
       }
     };
-    fetchData();
+    init();
   }, [id, user]);
+
+  // Realtime: update status when staff changes it
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase.channel(`reservation_detail_${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'reservations',
+          filter: `id=eq.${id}`,
+        },
+        () => {
+          fetchReservation();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, fetchReservation]);
 
   const handleCancel = async () => {
     if (!id || !window.confirm('Are you sure you want to cancel this reservation?')) return;
@@ -67,32 +101,6 @@ export default function ReservationDetail() {
     }
   };
 
-  const generateWhatsAppUrl = () => {
-    if (!reservation || !profile) return null;
-    
-    // Attempt to use the stall's number, fallback to the environment variable for demo purposes
-    const staffPhone = reservation.canteen?.staff_mobile || import.meta.env.VITE_WHATSAPP_NUMBER;
-    if (!staffPhone) return null;
-    
-    const itemList = reservation.items?.map((item: any) => `• ${item.item_name} × ${item.quantity}`).join('\n') || '';
-    const message = `👋 Hello!
-
-I have placed a reservation at CampusOne.
-
-Student Name: ${profile.name}
-Roll Number: ${profile.rollNumber}
-
-Order:
-${itemList}
-
-Total: ₹${reservation.total_amount}
-Reservation ID: ${reservation.reservation_code}
-
-Please prepare my order.`;
-    
-    return getWhatsAppUrl(message, staffPhone);
-  };
-
   if (loading) {
     return (
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
@@ -103,18 +111,22 @@ Please prepare my order.`;
   
   if (error || !reservation) return <div className="empty-state"><span className="empty-state-icon">⚠️</span><h3>Not Found</h3><p>{error || 'Reservation not found.'}</p></div>;
 
-  const waUrl = generateWhatsAppUrl();
   const status = reservation.status;
   
   const steps = [
-    { key: 'pending', label: 'Created' },
-    { key: 'confirmed', label: 'Confirmed' },
-    { key: 'ready', label: 'Ready' },
-    { key: 'collected', label: 'Collected' }
+    { key: 'pending',   label: 'Pending' },
+    { key: 'confirmed', label: 'Preparing' },
+    { key: 'ready',     label: 'Ready' },
+    { key: 'collected', label: 'Completed' }
   ];
 
   const getStepIndex = (st: string) => steps.findIndex(s => s.key === st);
   const currentIndex = getStepIndex(status);
+
+  // Show QR when reservation is pending or confirmed (i.e. not yet ready/collected/cancelled)
+  const showQR = (status === 'pending' || status === 'confirmed')
+    && reservation.qr_token
+    && reservation.order_type === 'canteen';
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', animation: 'fadeIn 0.4s ease' }}>
@@ -141,7 +153,7 @@ Please prepare my order.`;
             </p>
           </div>
           <div className={`badge badge-${status}`} style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}>
-            {status}
+            {steps.find(s => s.key === status)?.label ?? status}
           </div>
         </div>
 
@@ -149,8 +161,9 @@ Please prepare my order.`;
         {status !== 'cancelled' && status !== 'expired' && (
           <div style={{ padding: '1rem 0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
-              {/* Connecting Line */}
+              {/* Connecting Line — background */}
               <div style={{ position: 'absolute', top: '16px', left: '10%', right: '10%', height: '4px', background: 'var(--glass-bg)', borderRadius: 'var(--r-full)' }} />
+              {/* Connecting Line — filled progress */}
               <div style={{ position: 'absolute', top: '16px', left: '10%', right: '10%', height: '4px', background: 'var(--accent)', borderRadius: 'var(--r-full)', width: currentIndex > 0 ? `${(currentIndex / 3) * 80}%` : '0%', transition: 'width 0.5s ease-out' }} />
 
               {steps.map((step, idx) => {
@@ -175,6 +188,27 @@ Please prepare my order.`;
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* QR Code — shown for active canteen orders */}
+        {showQR && (
+          <ReservationQRCode
+            qrToken={reservation.qr_token!}
+            reservationCode={reservation.reservation_code}
+          />
+        )}
+
+        {/* Info for bookstore orders (no QR) */}
+        {(status === 'pending' || status === 'confirmed') && reservation.order_type === 'bookstore' && (
+          <div style={{ padding: '1.5rem', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 'var(--r-lg)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>📚</span>
+            <div>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Bookstore Order</p>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                Visit the bookstore with your reservation code <strong style={{ color: 'var(--text-primary)' }}>{reservation.reservation_code}</strong> to collect your items.
+              </p>
             </div>
           </div>
         )}
@@ -206,8 +240,10 @@ Please prepare my order.`;
                 <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{reservation.canteen?.name}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Contact</span>
-                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{reservation.canteen?.staff_mobile || 'N/A'}</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Type</span>
+                <span style={{ color: 'var(--text-primary)', fontWeight: 500, textTransform: 'capitalize' }}>
+                  {reservation.order_type ?? reservation.canteen?.type ?? '—'}
+                </span>
               </div>
             </div>
           </div>
@@ -243,43 +279,19 @@ Please prepare my order.`;
           </div>
         </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column', marginTop: '1rem' }}>
-          {(status === 'pending' || status === 'confirmed') && (
-            <div>
-              {waUrl ? (
-                <a 
-                  href={waUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{ display: 'block', textDecoration: 'none' }}
-                >
-                  <button className="btn-whatsapp">
-                    <span style={{ fontSize: '1.25rem' }}>💬</span> Notify Stall on WhatsApp
-                  </button>
-                </a>
-              ) : (
-                <div style={{ padding: '1.25rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 'var(--r-lg)', textAlign: 'center' }}>
-                  <p style={{ fontSize: '0.9rem', color: 'var(--danger)' }}>
-                    WhatsApp unavailable<br/>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>The stall has not configured a WhatsApp number yet.</span>
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {(status === 'pending' || status === 'confirmed') && (
+        {/* Cancellation */}
+        {(status === 'pending' || status === 'confirmed') && (
+          <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column', marginTop: '1rem' }}>
             <button 
               onClick={handleCancel} 
               disabled={cancelling} 
               className="btn-ghost"
-              style={{ width: '100%', color: 'var(--danger)', padding: '1.25rem', borderRadius: 'var(--r-lg)', fontWeight: 600, fontSize: '1rem', marginTop: '0.5rem' }}
+              style={{ width: '100%', color: 'var(--danger)', padding: '1.25rem', borderRadius: 'var(--r-lg)', fontWeight: 600, fontSize: '1rem' }}
             >
-              {cancelling ? 'Cancelling...' : 'Cancel Reservation'}
+              {cancelling ? 'Cancelling…' : 'Cancel Reservation'}
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
       </div>
     </div>
