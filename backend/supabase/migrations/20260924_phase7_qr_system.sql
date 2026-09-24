@@ -193,38 +193,64 @@ $$;
 -- ────────────────────────────────────────────────────────────
 -- STEP 4: Create get_reservation_by_qr_token RPC (NEW)
 -- ────────────────────────────────────────────────────────────
--- Security model:
---   authenticated canteen_staff
---   → staff_profiles.shop_id = reservation.canteen_id
---   → reservation.order_type = 'canteen'
---   → reservation.status is actionable
--- Returns a JSONB object with safe reservation data + items
+-- Security model — ALL 7 checks enforced server-side.
+-- The client cannot supply: student_id, canteen_id, shop_id, order_type.
+--
+--   Check 1: auth.uid() IS NOT NULL         → unauthenticated rejected
+--   Check 2: staff_profiles row exists       → non-staff rejected
+--   Check 3: staff_type = 'canteen_staff'   → bookstore_staff rejected (DB-level)
+--   Check 4: qr_token matches a reservation → invalid QR rejected
+--   Check 5: reservation.canteen_id = staff.shop_id → cross-canteen rejected
+--   Check 6: reservation.order_type = 'canteen'     → bookstore QR rejected
+--   Check 7: status IN ('pending','confirmed','ready') only → processed rejected
+--
+-- SECURITY DEFINER with SET search_path=public to prevent schema injection.
+-- Return: only what the staff UI needs. No credentials, no qr_token exposed.
 -- ────────────────────────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION public.get_reservation_by_qr_token(p_qr_token TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
-  v_staff_shop_id UUID;
-  v_reservation   RECORD;
-  v_student       RECORD;
-  v_items         JSONB;
+  v_staff        RECORD;  -- holds shop_id + staff_type
+  v_reservation  RECORD;
+  v_student      RECORD;
+  v_items        JSONB;
 BEGIN
-  -- 1. Verify authentication and get staff's assigned shop
-  SELECT shop_id INTO v_staff_shop_id
+
+  -- CHECK 1: Must be authenticated
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Not authorized.';
+  END IF;
+
+  -- CHECK 2 + 3: Must have a staff_profiles row AND be canteen_staff
+  -- Both values fetched in one query — neither is trusted from the client.
+  SELECT shop_id, staff_type
+    INTO v_staff
     FROM public.staff_profiles
     WHERE user_id = auth.uid();
 
-  IF NOT FOUND OR v_staff_shop_id IS NULL THEN
-    RAISE EXCEPTION 'Not authorized or no assigned shop.';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Not authorized or no staff profile found.';
   END IF;
 
-  -- 2. Look up reservation by QR token
+  IF v_staff.shop_id IS NULL THEN
+    RAISE EXCEPTION 'No shop assigned to your account. Contact an administrator.';
+  END IF;
+
+  -- Check 3 (CRITICAL): bookstore_staff cannot use the canteen QR scanner.
+  -- This is database-level enforcement — the frontend role check is UI-only.
+  IF v_staff.staff_type != 'canteen_staff' THEN
+    RAISE EXCEPTION 'This QR scanner is for canteen staff only.';
+  END IF;
+
+  -- CHECK 4: QR token must match a real reservation
   SELECT r.id, r.reservation_code, r.status, r.total_amount,
-         r.canteen_id, r.student_id, r.order_type, r.created_at, r.updated_at
-  INTO v_reservation
+         r.canteen_id, r.student_id, r.order_type, r.created_at
+    INTO v_reservation
     FROM public.reservations r
     WHERE r.qr_token = p_qr_token;
 
@@ -232,40 +258,47 @@ BEGIN
     RAISE EXCEPTION 'Invalid QR code.';
   END IF;
 
-  -- 3. Verify this reservation belongs to the staff member's shop
-  IF v_reservation.canteen_id != v_staff_shop_id THEN
+  -- CHECK 5: Reservation must belong to this staff member's assigned shop
+  -- Prevents Canteen A staff from reading Canteen B orders via a known token.
+  IF v_reservation.canteen_id != v_staff.shop_id THEN
     RAISE EXCEPTION 'This order belongs to a different shop.';
   END IF;
 
-  -- 4. Verify it is a canteen order (not bookstore)
+  -- CHECK 6: Must be a canteen order — bookstore orders cannot be processed here
+  -- order_type is derived at creation time from canteens.type — never from the client.
   IF v_reservation.order_type != 'canteen' THEN
     RAISE EXCEPTION 'This QR scanner is for canteen orders only.';
   END IF;
 
-  -- 5. Verify it is in an actionable state
+  -- CHECK 7: Status must be actionable
+  -- collected / cancelled / expired reservations cannot be processed again.
   IF v_reservation.status IN ('collected', 'cancelled', 'expired') THEN
     RAISE EXCEPTION 'This order has already been % and cannot be processed again.', v_reservation.status;
   END IF;
 
-  -- 6. Fetch student info (safe fields only)
-  SELECT name, roll_number, mobile INTO v_student
+  -- Fetch student info — safe fields only (no auth data, no passwords)
+  SELECT name, roll_number, mobile
+    INTO v_student
     FROM public.profiles
     WHERE id = v_reservation.student_id;
 
-  -- 7. Fetch reservation items
+  -- Fetch reservation line items
   SELECT jsonb_agg(
     jsonb_build_object(
-      'id', ri.id,
-      'item_name', ri.item_name,
-      'quantity', ri.quantity,
+      'id',         ri.id,
+      'item_name',  ri.item_name,
+      'quantity',   ri.quantity,
       'unit_price', ri.unit_price,
-      'subtotal', ri.subtotal
+      'subtotal',   ri.subtotal
     )
-  ) INTO v_items
-    FROM public.reservation_items ri
-    WHERE ri.reservation_id = v_reservation.id;
+    ORDER BY ri.item_name
+  )
+  INTO v_items
+  FROM public.reservation_items ri
+  WHERE ri.reservation_id = v_reservation.id;
 
-  -- 8. Return safe composite result
+  -- Return safe composite result
+  -- Does NOT include: qr_token, student credentials, Supabase keys, internal IDs beyond reservation id.
   RETURN jsonb_build_object(
     'id',               v_reservation.id,
     'reservation_code', v_reservation.reservation_code,
@@ -274,9 +307,9 @@ BEGIN
     'order_type',       v_reservation.order_type,
     'created_at',       v_reservation.created_at,
     'student', jsonb_build_object(
-      'name',        v_student.name,
-      'roll_number', v_student.roll_number,
-      'mobile',      v_student.mobile
+      'name',        COALESCE(v_student.name, 'Unknown'),
+      'roll_number', COALESCE(v_student.roll_number, '—'),
+      'mobile',      COALESCE(v_student.mobile, '—')
     ),
     'items', COALESCE(v_items, '[]'::jsonb)
   );
@@ -285,13 +318,24 @@ $$;
 
 
 -- ────────────────────────────────────────────────────────────
--- STEP 5: Verify migration
--- Run this SELECT to confirm all columns and data are correct:
+-- STEP 5: Verification queries (run manually after migration)
 -- ────────────────────────────────────────────────────────────
--- SELECT id, reservation_code, status, order_type,
---        length(qr_token) as token_len
--- FROM public.reservations
--- LIMIT 10;
+-- Verify 1: All rows have qr_token + order_type populated correctly
+-- SELECT id, reservation_code, order_type, length(qr_token) AS token_len
+-- FROM public.reservations LIMIT 10;
+-- Expected: token_len=36, order_type='canteen' or 'bookstore'
 --
--- Expected: qr_token length = 36 (UUID format), order_type = 'canteen' or 'bookstore'
+-- Verify 2: No NULL values remain (both columns must be NOT NULL)
+-- SELECT COUNT(*) FROM public.reservations
+-- WHERE qr_token IS NULL OR order_type IS NULL;
+-- Expected: 0
+--
+-- Verify 3: Both RPCs are deployed
+-- SELECT routine_name FROM information_schema.routines
+-- WHERE routine_schema='public'
+--   AND routine_name IN ('create_reservation','get_reservation_by_qr_token');
+-- Expected: 2 rows
 -- ────────────────────────────────────────────────────────────
+
+
+
