@@ -135,17 +135,18 @@ export default function Profile() {
   const userInitial = profile.name.charAt(0).toUpperCase();
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto', animation: 'fadeIn 0.4s ease' }}>
+    <div className="page-container" style={{ maxWidth: 640, animation: 'fadeIn 0.4s ease' }}>
 
       {/* Identity Card */}
       <div
         className="glass-strong"
         style={{
           borderRadius: 'var(--r-xl)',
-          padding: '2.5rem 2rem',
+          padding: 'clamp(1.5rem, 4vw, 2.5rem) clamp(1rem, 4vw, 2rem)',
           marginBottom: '1.5rem',
           display: 'flex',
           alignItems: 'center',
+          flexWrap: 'wrap',
           gap: '1.5rem',
           position: 'relative',
           overflow: 'hidden',
@@ -335,18 +336,18 @@ export default function Profile() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '0.5rem' }}>
               <button
-                className="btn-primary"
-                style={{ flex: 1 }}
+                className="btn-primary w-full sm:w-auto"
+                style={{ flex: '1 1 120px' }}
                 onClick={handleSave}
                 disabled={saving}
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
               <button
-                className="btn-ghost"
-                style={{ flex: 1, border: '1px solid var(--glass-border)' }}
+                className="btn-ghost w-full sm:w-auto"
+                style={{ flex: '1 1 120px', border: '1px solid var(--glass-border)' }}
                 onClick={handleCancelEdit}
                 disabled={saving}
               >
@@ -373,6 +374,7 @@ export default function Profile() {
                   padding: '1.1rem 0',
                   borderBottom: idx < arr.length - 1 ? '1px solid var(--glass-border)' : 'none',
                   gap: '1rem',
+                  flexWrap: 'wrap',
                 }}
               >
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 500, flexShrink: 0 }}>

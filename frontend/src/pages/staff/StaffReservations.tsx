@@ -83,7 +83,7 @@ export default function StaffReservations() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '2rem 0' }}>
+      <div className="page-container" style={{ padding: '2rem 0' }}>
          <div className="skeleton" style={{ height: 100, borderRadius: 'var(--r-lg)', marginBottom: '3rem' }} />
          <div style={{ display: 'grid', gap: '1.5rem' }}>
            {[...Array(4)].map((_, i) => <div key={i} className="skeleton" style={{ height: 150, borderRadius: 'var(--r-xl)' }} />)}
@@ -106,7 +106,7 @@ export default function StaffReservations() {
   const isCanteenStaff = user?.role === 'canteen_staff';
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', minHeight: 'calc(100vh - 60px)', animation: 'fadeIn 0.4s ease', padding: '1rem' }}>
+    <div className="page-container" style={{ animation: 'fadeIn 0.4s ease', padding: '1rem' }}>
       <BackgroundLayer type="staff" />
 
       {/* QR Scanner Modal */}
@@ -154,7 +154,7 @@ export default function StaffReservations() {
       </div>
 
       {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" style={{ marginBottom: '3rem' }}>
         {[
           { label: 'Pending',   count: counts.pending,   color: 'var(--status-pending)',   bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.2)' },
           { label: 'Preparing', count: counts.confirmed,  color: 'var(--status-confirmed)', bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.2)' },
@@ -169,23 +169,13 @@ export default function StaffReservations() {
       </div>
 
       {/* Filter Tabs */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2.5rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none' }}>
+      <div className="chips-row" style={{ marginBottom: '2.5rem' }}>
         {['all', 'pending', 'confirmed', 'ready', 'collected'].map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className="btn-ghost"
-            style={{
-              padding: '0.75rem 1.5rem',
-              borderRadius: 'var(--r-full)',
-              border: filter === f ? 'none' : '1px solid var(--glass-border)',
-              background: filter === f ? 'var(--accent)' : 'var(--glass-bg)',
-              color: filter === f ? '#fff' : 'var(--text-muted)',
-              fontWeight: 600,
-              textTransform: 'capitalize',
-              whiteSpace: 'nowrap',
-              boxShadow: filter === f ? 'var(--shadow-glow)' : 'none'
-            }}
+            className={`chip ${filter === f ? 'active' : ''}`}
+            style={{ textTransform: 'capitalize' }}
           >
             {f === 'confirmed' ? 'preparing' : f}
           </button>
@@ -201,7 +191,7 @@ export default function StaffReservations() {
           </div>
         ) : (
           filtered.map(res => (
-            <div key={res.id} className="glass" style={{ borderRadius: 'var(--r-xl)', padding: '1.5rem 2rem', display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'center' }}>
+            <div key={res.id} className="glass" style={{ borderRadius: 'var(--r-xl)', padding: 'clamp(1.25rem, 4vw, 2rem)', display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'center' }}>
               
               <div style={{ flex: '1 1 250px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{res.reservation_code}</h3>

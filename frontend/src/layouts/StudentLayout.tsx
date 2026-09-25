@@ -9,17 +9,16 @@ import NotificationDropdown from '@/components/common/NotificationDropdown';
 /* ─── Nav link definitions ─── */
 const navItems = [
   { to: ROUTES.DASHBOARD,    label: 'Home' },
-  { to: ROUTES.ITEMS,        label: 'Explore' },
+  { to: `${ROUTES.ITEMS}?shop=canteen`,   label: 'Canteen' },
   { to: ROUTES.RESERVATIONS, label: 'My Orders' },
 ];
 
 const drawerItems = [
-  { to: ROUTES.DASHBOARD,    label: 'Home',          icon: '🏠' },
-  { to: `${ROUTES.ITEMS}?shop=canteen`,   label: 'Canteen',       icon: '🍔' },
-  { to: `${ROUTES.ITEMS}?shop=bookstore`, label: 'Bookstore',     icon: '📚' },
-  { to: ROUTES.CART,         label: 'Cart',          icon: '🛒' },
-  { to: ROUTES.RESERVATIONS, label: 'My Orders',     icon: '📦' },
-  { to: ROUTES.PROFILE,      label: 'My Profile',    icon: '👤' },
+  { to: ROUTES.DASHBOARD,    label: 'Home',       icon: '🏠' },
+  { to: `${ROUTES.ITEMS}?shop=canteen`,  label: 'Canteen',    icon: '🍽️' },
+  { to: ROUTES.CART,         label: 'Cart',       icon: '🛒' },
+  { to: ROUTES.RESERVATIONS, label: 'My Orders',  icon: '📦' },
+  { to: ROUTES.PROFILE,      label: 'My Profile', icon: '👤' },
 ];
 
 function StudentLayoutInner() {
@@ -247,9 +246,7 @@ function StudentLayoutInner() {
 
       {/* ── Page content ── */}
       <main style={{ flex: 1 }}>
-        <div className="page-container">
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
 
       {/* ── Mobile Drawer ── */}

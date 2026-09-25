@@ -1,47 +1,123 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants';
 import BackgroundLayer from '@/components/common/BackgroundLayer';
 import { supabase } from '@/lib/supabase';
 
-/* ─── Static featured "booking" tiles (like the reference image) ─── */
-const FEATURED_TILES = [
+/* ─── Canteen categories ─── */
+const CATEGORIES = [
   {
-    id: 'canteen',
-    to: `${ROUTES.ITEMS}?shop=canteen`,
-    label: 'Canteen',
-    category: 'Food & Drinks',
-    emoji: '🍔',
-    // Warm food photography
-    img: 'https://images.unsplash.com/photo-1567521464027-f127ff144326?q=80&w=800&auto=format&fit=crop',
+    id: 'Tiffins',
+    label: 'Tiffins',
+    emoji: '🥞',
+    desc: 'Dosa, Idli, Vada & more',
+    img: '/images/items/tiffins.jpg',
     color: '#F59E0B',
-    colorBg: 'rgba(245,158,11,0.18)',
-    desc: 'Hot meals, snacks & beverages',
-    badge: 'Live Menu',
+    bg: 'rgba(245,158,11,0.12)',
+    border: 'rgba(245,158,11,0.22)',
   },
   {
-    id: 'bookstore',
-    to: `${ROUTES.ITEMS}?shop=bookstore`,
-    label: 'Bookstore',
-    category: 'Books & Stationery',
-    emoji: '📚',
-    // Library shelves
-    img: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=800&auto=format&fit=crop',
-    color: '#38BDF8',
-    colorBg: 'rgba(56,189,248,0.18)',
-    desc: 'Textbooks, lab manuals & stationery',
-    badge: 'Pre-Order',
+    id: 'Curries',
+    label: 'Curries',
+    emoji: '🍛',
+    desc: 'Paneer, Dal, Veg curries',
+    img: '/images/items/curries.jpg',
+    color: '#F97316',
+    bg: 'rgba(249,115,22,0.12)',
+    border: 'rgba(249,115,22,0.22)',
+  },
+  {
+    id: 'Meals',
+    label: 'Meals',
+    emoji: '🍚',
+    desc: 'Full meals & rice plates',
+    img: '/images/items/meals.jpg',
+    color: '#22C55E',
+    bg: 'rgba(34,197,94,0.12)',
+    border: 'rgba(34,197,94,0.22)',
+  },
+  {
+    id: 'Beverages',
+    label: 'Beverages',
+    emoji: '☕',
+    desc: 'Coffee, Tea, Buttermilk',
+    img: '/images/items/beverages.jpg',
+    color: '#8B5CF6',
+    bg: 'rgba(139,92,246,0.12)',
+    border: 'rgba(139,92,246,0.22)',
+  },
+  {
+    id: 'Snacks',
+    label: 'Snacks',
+    emoji: '🥟',
+    desc: 'Samosa, Bajji, Punugulu',
+    img: '/images/items/snacks.jpg',
+    color: '#EC4899',
+    bg: 'rgba(236,72,153,0.12)',
+    border: 'rgba(236,72,153,0.22)',
   },
 ];
 
-/* ─── Quick stats / action cards ─── */
+/* ─── Today's favorites ─── */
+const POPULAR_ITEMS = [
+  {
+    name: 'Masala Dosa',
+    price: '₹45',
+    category: 'Tiffins',
+    desc: 'Crispy dosa with potato masala & chutneys',
+    img: '/images/items/hero_dosa.jpg',
+    to: `${ROUTES.ITEMS}?shop=canteen&category=Tiffins`,
+  },
+  {
+    name: 'Idli (2 pcs)',
+    price: '₹25',
+    category: 'Tiffins',
+    desc: 'Soft steamed idli with sambar & coconut chutney',
+    img: '/images/items/tiffins.jpg',
+    to: `${ROUTES.ITEMS}?shop=canteen&category=Tiffins`,
+  },
+  {
+    name: 'South Indian Meals',
+    price: '₹80',
+    category: 'Meals',
+    desc: 'Rice, dal, sambar, rasam, two curries & papad',
+    img: '/images/items/meals.jpg',
+    to: `${ROUTES.ITEMS}?shop=canteen&category=Meals`,
+  },
+  {
+    name: 'Paneer Butter Masala',
+    price: '₹70',
+    category: 'Curries',
+    desc: 'Rich creamy paneer curry with butter & spices',
+    img: '/images/items/curries.jpg',
+    to: `${ROUTES.ITEMS}?shop=canteen&category=Curries`,
+  },
+  {
+    name: 'Filter Coffee',
+    price: '₹20',
+    category: 'Beverages',
+    desc: 'Strong South Indian filter coffee with foam',
+    img: '/images/items/beverages.jpg',
+    to: `${ROUTES.ITEMS}?shop=canteen&category=Beverages`,
+  },
+  {
+    name: 'Punugulu',
+    price: '₹30',
+    category: 'Snacks',
+    desc: 'Crispy urad dal fritters with mint & sambar',
+    img: '/images/items/snacks.jpg',
+    to: `${ROUTES.ITEMS}?shop=canteen&category=Snacks`,
+  },
+];
+
+/* ─── Quick Actions ─── */
 const QUICK_ACTIONS = [
   {
     to: ROUTES.RESERVATIONS,
     icon: '📦',
     label: 'My Orders',
-    desc: 'Track pending pickups',
+    desc: 'Track & pick up your reservations',
     color: '#A78BFA',
     bg: 'rgba(167,139,250,0.10)',
     border: 'rgba(167,139,250,0.22)',
@@ -50,97 +126,27 @@ const QUICK_ACTIONS = [
     to: ROUTES.CART,
     icon: '🛒',
     label: 'My Cart',
-    desc: 'Review & checkout',
-    color: '#34D399',
-    bg: 'rgba(52,211,153,0.10)',
-    border: 'rgba(52,211,153,0.22)',
+    desc: 'Review items & reserve',
+    color: '#00D084',
+    bg: 'rgba(0,208,132,0.10)',
+    border: 'rgba(0,208,132,0.22)',
   },
   {
     to: ROUTES.PROFILE,
     icon: '👤',
     label: 'My Profile',
-    desc: 'View & edit details',
+    desc: 'View & edit your details',
     color: '#F87171',
     bg: 'rgba(248,113,113,0.10)',
     border: 'rgba(248,113,113,0.22)',
   },
 ];
 
-/* ─── Random item preview images (shown as a discovery row) ─── */
-const DISCOVERY_ITEMS = [
-  {
-    img: 'https://images.unsplash.com/photo-1630383249896-424e482df921?q=80&w=400&auto=format&fit=crop',
-    name: 'Breakfast Plate',
-    price: '₹65',
-    to: `${ROUTES.ITEMS}?shop=canteen`,
-  },
-  {
-    img: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=400&auto=format&fit=crop',
-    name: 'Cold Beverages',
-    price: '₹40',
-    to: `${ROUTES.ITEMS}?shop=canteen`,
-  },
-  {
-    img: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?q=80&w=400&auto=format&fit=crop',
-    name: 'South Indian Thali',
-    price: '₹90',
-    to: `${ROUTES.ITEMS}?shop=canteen`,
-  },
-  {
-    img: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=400&auto=format&fit=crop',
-    name: 'Textbooks',
-    price: 'from ₹120',
-    to: `${ROUTES.ITEMS}?shop=bookstore`,
-  },
-  {
-    img: 'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?q=80&w=400&auto=format&fit=crop',
-    name: 'Stationery',
-    price: 'from ₹20',
-    to: `${ROUTES.ITEMS}?shop=bookstore`,
-  },
-  {
-    img: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?q=80&w=400&auto=format&fit=crop',
-    name: 'Snack Pack',
-    price: '₹35',
-    to: `${ROUTES.ITEMS}?shop=canteen`,
-  },
-];
-
-function ArrowButton({ to, color = 'var(--accent)' }: { to: string; color?: string }) {
-  return (
-    <Link
-      to={to}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 44,
-        height: 44,
-        borderRadius: '50%',
-        background: color,
-        color: '#fff',
-        flexShrink: 0,
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-        boxShadow: `0 4px 16px ${color}55`,
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.transform = 'scale(1.12) rotate(12deg)';
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.transform = 'scale(1) rotate(0deg)';
-      }}
-      aria-label="Go"
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-        <path d="M5 12h14M12 5l7 7-7 7" />
-      </svg>
-    </Link>
-  );
-}
-
 export default function StudentDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [studentName, setStudentName] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [greeting] = useState(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -163,137 +169,309 @@ export default function StudentDashboard() {
 
   const displayName = studentName || user?.email?.split('@')[0] || 'Student';
 
-  return (
-    <div style={{ padding: '1.25rem', maxWidth: 1200, margin: '0 auto', minHeight: 'calc(100vh - 60px)' }}>
-      <BackgroundLayer type="dashboard" overlayOpacity={0.78} />
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`${ROUTES.ITEMS}?shop=canteen&q=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      navigate(`${ROUTES.ITEMS}?shop=canteen`);
+    }
+  };
 
-      {/* ── Hero Greeting ── */}
+  return (
+    <div style={{ paddingBottom: '4rem' }}>
+      <BackgroundLayer type="dashboard" overlayOpacity={0.82} />
+
+      {/* ── HERO ── */}
       <section
         style={{
           position: 'relative',
-          borderRadius: '28px',
           overflow: 'hidden',
-          marginBottom: '2rem',
-          minHeight: 260,
+          borderRadius: '0 0 32px 32px',
+          marginBottom: '2.5rem',
+          minHeight: 'clamp(380px, 55vw, 560px)',
           display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          padding: '2.5rem',
-          background: 'linear-gradient(135deg, rgba(16,217,138,0.12) 0%, rgba(56,189,248,0.08) 100%)',
-          border: '1px solid rgba(255,255,255,0.09)',
-          backdropFilter: 'blur(18px)',
-          WebkitBackdropFilter: 'blur(18px)',
+          alignItems: 'center',
         }}
       >
-        {/* Campus building illustration as decorative right image */}
-        <div
+        {/* Background food image */}
+        <img
+          src="/images/items/hero_dosa.jpg"
+          alt="Masala Dosa"
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: 'url("https://images.unsplash.com/photo-1562774053-701939374585?q=75&w=1200&auto=format&fit=crop")',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center right',
-            opacity: 0.18,
-            zIndex: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center right',
           }}
         />
-        {/* Gradient mask over the image */}
+        {/* Dark gradient overlay — strong on left, soft on right */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(90deg, rgba(8,9,14,0.95) 40%, rgba(8,9,14,0.35) 100%)',
-            zIndex: 1,
+            background: 'linear-gradient(105deg, rgba(6,8,10,0.97) 0%, rgba(6,8,10,0.88) 45%, rgba(6,8,10,0.40) 75%, rgba(6,8,10,0.15) 100%)',
+          }}
+        />
+        {/* Bottom fade */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 120,
+            background: 'linear-gradient(to top, rgba(6,8,10,0.95) 0%, transparent 100%)',
           }}
         />
 
-        {/* Content */}
-        <div style={{ position: 'relative', zIndex: 2, animation: 'slideInUp 0.5s ease forwards' }}>
+        {/* Hero content */}
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 2,
+            width: '100%',
+            maxWidth: 1200,
+            margin: '0 auto',
+            padding: 'clamp(2rem, 5vw, 3.5rem) clamp(1.25rem, 5vw, 2.5rem)',
+          }}
+        >
+          {/* Eyebrow badge */}
           <div
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.4rem',
-              background: 'rgba(16,217,138,0.12)',
-              border: '1px solid rgba(16,217,138,0.28)',
+              gap: '0.5rem',
+              background: 'rgba(0,208,132,0.12)',
+              border: '1px solid rgba(0,208,132,0.30)',
               borderRadius: '9999px',
-              padding: '0.3rem 0.875rem',
-              marginBottom: '1rem',
+              padding: '0.3rem 1rem',
+              marginBottom: '1.25rem',
+              animation: 'fadeIn 0.5s ease',
             }}
           >
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
-              CampusOne Portal
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#00D084', display: 'inline-block', animation: 'pulse 2s ease-in-out infinite' }} />
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#00D084', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              Live Menu · Campus Central Canteen
             </span>
           </div>
 
-          <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '1rem', fontWeight: 500, marginBottom: '0.3rem' }}>
-            {greeting},
+          {/* Greeting */}
+          <p style={{ color: 'rgba(255,255,255,0.60)', fontSize: 'clamp(0.9rem, 2vw, 1.05rem)', fontWeight: 500, marginBottom: '0.25rem', animation: 'slideInUp 0.4s ease' }}>
+            {greeting}, {displayName} 👋
           </p>
+
+          {/* Main headline */}
           <h1
             style={{
-              fontSize: 'clamp(2rem, 5vw, 3rem)',
+              fontSize: 'clamp(1.75rem, 5.5vw, 3.25rem)',
               fontWeight: 900,
               color: '#fff',
               letterSpacing: '-0.03em',
               lineHeight: 1.1,
-              marginBottom: '1rem',
+              marginBottom: '0.5rem',
+              animation: 'slideInUp 0.45s ease',
             }}
           >
-            {displayName} 👋
+            Fresh food.
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.60)', fontSize: '1.05rem', marginBottom: '1.75rem', maxWidth: 420 }}>
-            Reserve your campus food &amp; books before heading out — skip the queue every time.
+          <h1
+            style={{
+              fontSize: 'clamp(1.75rem, 5.5vw, 3.25rem)',
+              fontWeight: 900,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.1,
+              marginBottom: '1.25rem',
+              background: 'linear-gradient(135deg, #00D084 0%, #F59E0B 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              animation: 'slideInUp 0.5s ease',
+            }}
+          >
+            Zero queue.
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 'clamp(0.875rem, 2vw, 1rem)', marginBottom: '2rem', maxWidth: 400, lineHeight: 1.6, animation: 'slideInUp 0.55s ease' }}>
+            Reserve your meal before you reach the counter. Pick up instantly, skip the line.
           </p>
 
-          <div style={{ display: 'flex', gap: '0.875rem', flexWrap: 'wrap' }}>
+          {/* Search bar */}
+          <form onSubmit={handleSearch} style={{ animation: 'slideInUp 0.6s ease', marginBottom: '1.5rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                background: 'rgba(255,255,255,0.09)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                maxWidth: 480,
+                backdropFilter: 'blur(12px)',
+                transition: 'border-color 0.2s, box-shadow 0.2s',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(0,208,132,0.5)';
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,208,132,0.12)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <span style={{ padding: '0 0.875rem', color: 'rgba(255,255,255,0.40)', fontSize: '1.1rem' }}>🔍</span>
+              <input
+                type="text"
+                placeholder="Search dosa, idli, vada, meals…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: '#fff',
+                  fontSize: '0.95rem',
+                  padding: '0.9rem 0',
+                  fontFamily: 'inherit',
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  background: '#00D084',
+                  border: 'none',
+                  color: '#000',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  padding: '0.9rem 1.25rem',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  fontFamily: 'inherit',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#00bb75')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#00D084')}
+              >
+                Search
+              </button>
+            </div>
+          </form>
+
+          {/* CTAs */}
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', animation: 'slideInUp 0.65s ease' }}>
             <Link
               to={`${ROUTES.ITEMS}?shop=canteen`}
-              id="dashboard-browse-canteen"
-              className="btn-primary"
-              style={{ padding: '0.75rem 1.75rem', fontSize: '0.95rem' }}
+              id="dashboard-browse-menu"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.8rem 1.75rem',
+                borderRadius: '14px',
+                background: '#00D084',
+                color: '#000',
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                textDecoration: 'none',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                boxShadow: '0 4px 20px rgba(0,208,132,0.35)',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 28px rgba(0,208,132,0.45)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(0,208,132,0.35)';
+              }}
             >
-              🍔 Browse Canteen
+              🍽️ Browse Today's Menu
             </Link>
             <Link
-              to={`${ROUTES.ITEMS}?shop=bookstore`}
-              id="dashboard-browse-bookstore"
-              className="btn-secondary"
-              style={{ padding: '0.75rem 1.75rem', fontSize: '0.95rem' }}
+              to={ROUTES.RESERVATIONS}
+              id="dashboard-my-orders"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.8rem 1.5rem',
+                borderRadius: '14px',
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                color: '#fff',
+                fontWeight: 600,
+                fontSize: '0.95rem',
+                textDecoration: 'none',
+                backdropFilter: 'blur(8px)',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.13)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'}
             >
-              📚 Bookstore
+              📦 View My Orders
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ── Featured Booking Tiles (reference image style) ── */}
-      <section style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>Browse Shops</h2>
-          <Link to={ROUTES.ITEMS} style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
-            See all →
+      {/* ── WHAT ARE YOU CRAVING? (Category Cards) ── */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 clamp(1rem, 3vw, 2rem)', marginBottom: '2.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <h2 style={{ fontSize: 'clamp(1.1rem, 3vw, 1.35rem)', fontWeight: 800, color: '#fff', margin: 0 }}>
+            What are you craving? 🤔
+          </h2>
+          <Link to={`${ROUTES.ITEMS}?shop=canteen`} style={{ fontSize: '0.85rem', color: '#00D084', fontWeight: 600, textDecoration: 'none' }}>
+            View all →
           </Link>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-          {FEATURED_TILES.map((tile, i) => (
-            <div
-              key={tile.id}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(140px, 18vw, 180px), 1fr))',
+            gap: 'clamp(0.75rem, 2vw, 1.25rem)',
+          }}
+        >
+          {CATEGORIES.map((cat, i) => (
+            <Link
+              key={cat.id}
+              to={`${ROUTES.ITEMS}?shop=canteen&category=${cat.id}`}
               style={{
-                position: 'relative',
-                borderRadius: '24px',
+                textDecoration: 'none',
+                borderRadius: '20px',
                 overflow: 'hidden',
-                minHeight: 220,
-                border: '1px solid rgba(255,255,255,0.08)',
-                animation: `fadeIn 0.5s ease ${i * 0.12}s both`,
+                border: `1px solid ${cat.border}`,
+                background: cat.bg,
+                backdropFilter: 'blur(12px)',
+                position: 'relative',
+                minHeight: 'clamp(130px, 18vw, 170px)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'flex-end',
+                transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+                animation: `fadeIn 0.5s ease ${i * 0.08}s both`,
                 cursor: 'pointer',
               }}
+              onMouseEnter={e => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.transform = 'translateY(-4px)';
+                el.style.boxShadow = `0 12px 32px ${cat.color}33`;
+                const img = el.querySelector('img') as HTMLElement | null;
+                if (img) img.style.transform = 'scale(1.07)';
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.transform = 'translateY(0)';
+                el.style.boxShadow = 'none';
+                const img = el.querySelector('img') as HTMLElement | null;
+                if (img) img.style.transform = 'scale(1)';
+              }}
             >
-              {/* Background image */}
+              {/* Category image */}
               <img
-                src={tile.img}
-                alt={tile.label}
+                src={cat.img}
+                alt={cat.label}
                 style={{
                   position: 'absolute',
                   inset: 0,
@@ -301,140 +479,246 @@ export default function StudentDashboard() {
                   height: '100%',
                   objectFit: 'cover',
                   transition: 'transform 0.4s ease',
+                  opacity: 0.55,
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
               />
-              {/* Dark gradient overlay */}
+              {/* Gradient overlay */}
               <div
                 style={{
                   position: 'absolute',
                   inset: 0,
-                  background: 'linear-gradient(to top, rgba(5,7,12,0.95) 0%, rgba(5,7,12,0.50) 55%, transparent 100%)',
+                  background: `linear-gradient(to top, rgba(6,8,10,0.92) 0%, rgba(6,8,10,0.40) 60%, transparent 100%)`,
                 }}
               />
-
-              {/* Content overlay */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  padding: '1.25rem 1.5rem',
-                  zIndex: 2,
-                }}
-              >
-                {/* Top badge */}
-                <div>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      background: tile.colorBg,
-                      border: `1px solid ${tile.color}44`,
-                      color: tile.color,
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      padding: '0.3rem 0.75rem',
-                      borderRadius: '9999px',
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      backdropFilter: 'blur(8px)',
-                    }}
-                  >
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: tile.color, display: 'inline-block' }} />
-                    {tile.badge}
-                  </span>
-                </div>
-
-                {/* Bottom: name + arrow button */}
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                  <div>
-                    <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.25rem' }}>
-                      {tile.category}
-                    </p>
-                    <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{tile.label}</h3>
-                    <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.60)', marginTop: '0.25rem' }}>{tile.desc}</p>
-                  </div>
-                  <ArrowButton to={tile.to} color={tile.color} />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Discovery Row: Random item previews ── */}
-      <section style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>Discover Items</h2>
-          <Link to={ROUTES.ITEMS} id="dashboard-explore-all" style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
-            Explore all →
-          </Link>
-        </div>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-            gap: '0.875rem',
-          }}
-        >
-          {DISCOVERY_ITEMS.map((item, i) => (
-            <Link
-              key={item.name}
-              to={item.to}
-              style={{
-                textDecoration: 'none',
-                borderRadius: '18px',
-                overflow: 'hidden',
-                border: '1px solid rgba(255,255,255,0.07)',
-                background: 'rgba(255,255,255,0.03)',
-                backdropFilter: 'blur(10px)',
-                transition: 'transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease',
-                animation: `fadeIn 0.5s ease ${0.1 + i * 0.07}s both`,
-                display: 'block',
-              }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.transform = 'translateY(-4px)';
-                el.style.boxShadow = '0 12px 32px rgba(0,0,0,0.40)';
-                el.style.borderColor = 'rgba(16,217,138,0.20)';
-                const img = el.querySelector('img') as HTMLElement | null;
-                if (img) img.style.transform = 'scale(1.08)';
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.transform = 'translateY(0)';
-                el.style.boxShadow = 'none';
-                el.style.borderColor = 'rgba(255,255,255,0.07)';
-                const img = el.querySelector('img') as HTMLElement | null;
-                if (img) img.style.transform = 'scale(1)';
-              }}
-            >
-              <div style={{ position: 'relative', aspectRatio: '1/1', overflow: 'hidden' }}>
-                <img
-                  src={item.img}
-                  alt={item.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }}
-                />
-              </div>
-              <div style={{ padding: '0.75rem' }}>
-                <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: '0.2rem' }}>{item.name}</p>
-                <p style={{ fontSize: '0.78rem', color: 'var(--accent)', fontWeight: 700 }}>{item.price}</p>
+              {/* Text */}
+              <div style={{ position: 'relative', zIndex: 2, padding: 'clamp(0.75rem, 2vw, 1rem)' }}>
+                <span style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', display: 'block', marginBottom: '0.25rem' }}>{cat.emoji}</span>
+                <p style={{ fontWeight: 800, color: '#fff', fontSize: 'clamp(0.875rem, 1.8vw, 1rem)', lineHeight: 1.2, margin: 0 }}>{cat.label}</p>
+                <p style={{ fontSize: 'clamp(0.7rem, 1.3vw, 0.75rem)', color: 'rgba(255,255,255,0.55)', marginTop: '0.15rem', margin: 0 }}>{cat.desc}</p>
               </div>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* ── Quick Actions ── */}
-      <section>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: '1.25rem' }}>Quick Actions</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+      {/* ── TODAY'S SPECIAL ── */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 clamp(1rem, 3vw, 2rem)', marginBottom: '2.5rem' }}>
+        <Link
+          to={`${ROUTES.ITEMS}?shop=canteen&category=Tiffins`}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr auto',
+            gap: 'clamp(1rem, 3vw, 2rem)',
+            alignItems: 'center',
+            background: 'linear-gradient(135deg, rgba(245,158,11,0.14) 0%, rgba(0,208,132,0.10) 100%)',
+            border: '1px solid rgba(245,158,11,0.25)',
+            borderRadius: '24px',
+            overflow: 'hidden',
+            padding: 'clamp(1.25rem, 3vw, 2rem)',
+            textDecoration: 'none',
+            position: 'relative',
+            transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+            animation: 'fadeIn 0.6s ease',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
+            (e.currentTarget as HTMLElement).style.boxShadow = '0 16px 40px rgba(245,158,11,0.20)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+            (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+          }}
+        >
+          {/* Content */}
+          <div>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                background: 'rgba(245,158,11,0.18)',
+                border: '1px solid rgba(245,158,11,0.35)',
+                color: '#F59E0B',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                letterSpacing: '0.07em',
+                textTransform: 'uppercase',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '9999px',
+                marginBottom: '0.875rem',
+              }}
+            >
+              ⭐ Today's Special
+            </span>
+            <h3 style={{ fontSize: 'clamp(1.25rem, 3.5vw, 1.75rem)', fontWeight: 900, color: '#fff', margin: '0 0 0.5rem', letterSpacing: '-0.02em' }}>
+              Masala Dosa
+            </h3>
+            <p style={{ color: 'rgba(255,255,255,0.60)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.25rem', maxWidth: 380 }}>
+              Crispy golden dosa stuffed with spiced potato masala. Served with coconut chutney, peanut chutney & hot sambar.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: 900, color: '#00D084' }}>₹45</span>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  background: '#00D084',
+                  color: '#000',
+                  fontWeight: 800,
+                  fontSize: '0.875rem',
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                }}
+              >
+                Order Now →
+              </span>
+            </div>
+          </div>
+
+          {/* Image */}
+          <div
+            style={{
+              width: 'clamp(100px, 18vw, 180px)',
+              height: 'clamp(100px, 18vw, 180px)',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              border: '3px solid rgba(245,158,11,0.35)',
+              flexShrink: 0,
+              boxShadow: '0 8px 32px rgba(245,158,11,0.25)',
+            }}
+          >
+            <img
+              src="/images/items/hero_dosa.jpg"
+              alt="Masala Dosa"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          </div>
+        </Link>
+      </section>
+
+      {/* ── POPULAR ON CAMPUS ── */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 clamp(1rem, 3vw, 2rem)', marginBottom: '2.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <h2 style={{ fontSize: 'clamp(1.1rem, 3vw, 1.35rem)', fontWeight: 800, color: '#fff', margin: 0 }}>
+            🔥 Popular on Campus
+          </h2>
+          <Link to={`${ROUTES.ITEMS}?shop=canteen`} id="dashboard-explore-all" style={{ fontSize: '0.85rem', color: '#00D084', fontWeight: 600, textDecoration: 'none' }}>
+            See all items →
+          </Link>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(160px, 25vw, 220px), 1fr))',
+            gap: 'clamp(0.75rem, 2vw, 1.25rem)',
+          }}
+        >
+          {POPULAR_ITEMS.map((item, i) => (
+            <Link
+              key={item.name}
+              to={item.to}
+              style={{
+                textDecoration: 'none',
+                borderRadius: '20px',
+                overflow: 'hidden',
+                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'rgba(255,255,255,0.03)',
+                backdropFilter: 'blur(10px)',
+                display: 'flex',
+                flexDirection: 'column',
+                transition: 'transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease',
+                animation: `fadeIn 0.5s ease ${0.1 + i * 0.07}s both`,
+              }}
+              onMouseEnter={e => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.transform = 'translateY(-4px)';
+                el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.40)';
+                el.style.borderColor = 'rgba(0,208,132,0.22)';
+                const img = el.querySelector('img') as HTMLElement | null;
+                if (img) img.style.transform = 'scale(1.07)';
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.transform = 'translateY(0)';
+                el.style.boxShadow = 'none';
+                el.style.borderColor = 'rgba(255,255,255,0.08)';
+                const img = el.querySelector('img') as HTMLElement | null;
+                if (img) img.style.transform = 'scale(1)';
+              }}
+            >
+              {/* Image */}
+              <div style={{ position: 'relative', aspectRatio: '4/3', overflow: 'hidden' }}>
+                <img
+                  src={item.img}
+                  alt={item.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }}
+                />
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, background: 'linear-gradient(to top, rgba(6,8,10,0.70) 0%, transparent 100%)' }} />
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 10,
+                    left: 10,
+                    background: 'rgba(0,0,0,0.55)',
+                    backdropFilter: 'blur(8px)',
+                    color: 'rgba(255,255,255,0.80)',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '9999px',
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                  }}
+                >
+                  {item.category}
+                </span>
+              </div>
+              {/* Info */}
+              <div style={{ padding: 'clamp(0.75rem, 2vw, 1rem)', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <h3 style={{ fontSize: 'clamp(0.875rem, 1.8vw, 1rem)', fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: '0.35rem' }}>
+                  {item.name}
+                </h3>
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.50)', lineHeight: 1.4, marginBottom: '0.875rem', flex: 1 }}>
+                  {item.desc}
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 800, fontSize: 'clamp(1rem, 2vw, 1.15rem)', color: '#00D084' }}>{item.price}</span>
+                  <span
+                    style={{
+                      background: 'rgba(0,208,132,0.12)',
+                      border: '1px solid rgba(0,208,132,0.25)',
+                      color: '#00D084',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      padding: '0.3rem 0.75rem',
+                      borderRadius: '10px',
+                    }}
+                  >
+                    + Add
+                  </span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* ── QUICK ACTIONS ── */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 clamp(1rem, 3vw, 2rem)' }}>
+        <h2 style={{ fontSize: 'clamp(1.1rem, 3vw, 1.35rem)', fontWeight: 800, color: '#fff', marginBottom: '1.25rem' }}>
+          Quick Actions
+        </h2>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(200px, 28vw, 320px), 1fr))',
+            gap: 'clamp(0.75rem, 2vw, 1.25rem)',
+          }}
+        >
           {QUICK_ACTIONS.map((action, i) => (
             <Link
               key={action.to}
@@ -445,21 +729,20 @@ export default function StudentDashboard() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '1rem',
-                padding: '1.25rem 1.5rem',
+                padding: 'clamp(1rem, 2.5vw, 1.25rem) clamp(1rem, 2.5vw, 1.5rem)',
                 borderRadius: '18px',
                 background: action.bg,
                 border: `1px solid ${action.border}`,
                 backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
                 transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                 animation: `fadeIn 0.5s ease ${0.15 + i * 0.1}s both`,
               }}
-              onMouseEnter={(e) => {
+              onMouseEnter={e => {
                 const el = e.currentTarget as HTMLElement;
                 el.style.transform = 'translateY(-3px)';
                 el.style.boxShadow = `0 12px 30px ${action.color}22`;
               }}
-              onMouseLeave={(e) => {
+              onMouseLeave={e => {
                 const el = e.currentTarget as HTMLElement;
                 el.style.transform = 'translateY(0)';
                 el.style.boxShadow = 'none';

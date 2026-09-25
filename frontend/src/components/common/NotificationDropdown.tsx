@@ -149,8 +149,9 @@ export default function NotificationDropdown() {
         <div style={{
           position: 'absolute',
           top: 'calc(100% + 0.5rem)',
-          right: 0,
-          width: '320px',
+          right: '-0.5rem',
+          width: '360px',
+          maxWidth: 'calc(100vw - 1rem)',
           background: 'rgba(30, 30, 46, 0.95)',
           backdropFilter: 'blur(10px)',
           border: '1px solid rgba(255,255,255,0.1)',
@@ -160,7 +161,7 @@ export default function NotificationDropdown() {
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: '400px'
+          maxHeight: 'min(400px, 80vh)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
             <h3 style={{ fontWeight: 700, margin: 0 }}>Notifications</h3>

@@ -47,9 +47,9 @@ export default function StaffLayout({ shopType }: StaffLayoutProps) {
   }
 
   const staffNavLinks = [
-    ...(shopType === 'canteen'    ? [{ to: ROUTES.STAFF_CANTEEN,    label: 'Dashboard', icon: '📊' }] : []),
+    ...(shopType === 'canteen'    ? [{ to: ROUTES.STAFF_CANTEEN,    label: 'Orders', icon: '📋' }] : []),
     ...(shopType === 'bookstore'  ? [{ to: ROUTES.STAFF_BOOKSTORE,  label: 'Dashboard', icon: '📊' }] : []),
-    { to: ROUTES.STAFF_RESERVATIONS, label: 'Reservations', icon: '📋' },
+    ...(shopType === 'bookstore'  ? [{ to: ROUTES.STAFF_RESERVATIONS, label: 'Reservations', icon: '📋' }] : []),
   ];
 
   const userInitial = user?.email?.charAt(0).toUpperCase() || 'S';

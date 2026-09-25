@@ -5,6 +5,97 @@ import { getMyReservations } from '@/services/reservation.service';
 import type { Reservation } from '@/types';
 import BackgroundLayer from '@/components/common/BackgroundLayer';
 
+const statusConfig: Record<string, { label: string; icon: string; className: string }> = {
+  pending:   { label: 'Pending',   icon: '●', className: 'badge-pending' },
+  confirmed: { label: 'Preparing', icon: '●', className: 'badge-confirmed' },
+  ready:     { label: 'Ready',     icon: '✓', className: 'badge-ready' },
+  collected: { label: 'Completed', icon: '✓', className: 'badge-collected' },
+  cancelled: { label: 'Cancelled', icon: '×', className: 'badge-cancelled' },
+  expired:   { label: 'Expired',   icon: '×', className: 'badge-expired' },
+};
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const isToday =
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday =
+    date.getDate() === yesterday.getDate() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getFullYear() === yesterday.getFullYear();
+
+  const time = date.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+  if (isToday) return `Today • ${time}`;
+  if (isYesterday) return `Yesterday • ${time}`;
+  return `${date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} • ${time}`;
+}
+
+function OrderCard({ res, index }: { res: Reservation; index: number }) {
+  const status = statusConfig[res.status] || { label: res.status, icon: '●', className: '' };
+  const itemCount = res.items?.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
+  const itemNames = res.items?.slice(0, 2).map(i => i.item_name) ?? [];
+  const remainingItems = (res.items?.length ?? 0) - 2;
+
+  return (
+    <div
+      className="order-card glass-hover"
+      style={{ animation: `staggerIn 0.3s ease ${index * 0.06}s both` }}
+    >
+      {/* Status accent bar */}
+      <div className="order-card-accent" style={{
+        background: res.status === 'ready' ? 'var(--status-ready)' :
+                    res.status === 'confirmed' ? 'var(--status-confirmed)' :
+                    res.status === 'pending' ? 'var(--status-pending)' :
+                    res.status === 'cancelled' ? 'var(--status-cancelled)' :
+                    'transparent'
+      }} />
+
+      {/* Header row */}
+      <div className="order-card-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+          <div className="order-card-emoji">🥡</div>
+          <div style={{ minWidth: 0 }}>
+            <h3 className="order-card-code">{res.reservation_code}</h3>
+            <p className="order-card-canteen">{res.canteen?.name || 'Campus Canteen'}</p>
+          </div>
+        </div>
+        <span className={`badge ${status.className}`}>
+          {status.label}
+        </span>
+      </div>
+
+      {/* Items preview */}
+      <div className="order-card-items">
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+          {itemNames.join(', ')}
+          {remainingItems > 0 && <span style={{ color: 'var(--text-muted)' }}> +{remainingItems} more</span>}
+        </p>
+      </div>
+
+      {/* Footer */}
+      <div className="order-card-footer">
+        <div>
+          <span className="order-card-amount">₹{res.total_amount}</span>
+          <span className="order-card-meta">
+            {itemCount} {itemCount === 1 ? 'item' : 'items'} • {formatDate(res.created_at)}
+          </span>
+        </div>
+        <Link to={ROUTES.RESERVATION_DETAIL.replace(':id', res.id)} style={{ textDecoration: 'none' }}>
+          <button className="btn-secondary" style={{ padding: '0.5rem 1.25rem', minHeight: 38, fontSize: '0.85rem' }}>
+            View Ticket
+          </button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function Reservations() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,99 +118,92 @@ export default function Reservations() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '2rem 0' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-          {[...Array(3)].map((_, i) => <div key={i} className="skeleton" style={{ height: 200, borderRadius: 'var(--r-lg)' }} />)}
+      <div className="page-container">
+        <BackgroundLayer type="dashboard" />
+        <div className="page-header">
+          <h1>My Orders</h1>
+          <p>Your campus reservations</p>
+        </div>
+        <div className="orders-list">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="skeleton" style={{ height: 160, borderRadius: 'var(--r-xl)' }} />
+          ))}
         </div>
       </div>
     );
   }
-  
-  if (error) return <div className="empty-state"><span className="empty-state-icon">⚠️</span><h3>Error</h3><p>{error}</p></div>;
+
+  if (error) {
+    return (
+      <div className="page-container">
+        <BackgroundLayer type="dashboard" />
+        <div className="empty-state glass" style={{ borderRadius: 'var(--r-2xl)', maxWidth: 480, margin: '4rem auto' }}>
+          <span className="empty-state-icon">⚠️</span>
+          <h3>Something went wrong</h3>
+          <p>{error}</p>
+          <button onClick={() => window.location.reload()} className="btn-primary">Try Again</button>
+        </div>
+      </div>
+    );
+  }
 
   const activeStatuses = ['pending', 'confirmed', 'ready'];
   const activeReservations = reservations.filter(r => activeStatuses.includes(r.status));
   const pastReservations = reservations.filter(r => !activeStatuses.includes(r.status));
 
-  const ReservationCard = ({ res }: { res: Reservation }) => (
-    <div className="glass-hover group" style={{ borderRadius: 'var(--r-xl)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', background: res.status === 'ready' ? 'var(--status-ready)' : res.status === 'confirmed' ? 'var(--status-confirmed)' : res.status === 'pending' ? 'var(--status-pending)' : 'transparent', width: '4px' }} />
-      
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{res.reservation_code}</h3>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(res.created_at).toLocaleString()}</p>
-        </div>
-        <span className={`badge badge-${res.status}`}>
-          {res.status}
-        </span>
-      </div>
-
-      <div style={{ background: 'var(--bg-elevated)', padding: '1rem', borderRadius: 'var(--r-md)', border: '1px solid var(--glass-border)' }}>
-        <p style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{res.canteen?.name}</p>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-          {res.items?.map(i => `${i.quantity}x ${i.item_name}`).join(', ')}
-        </p>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '1rem', borderTop: '1px dashed var(--glass-border)' }}>
-        <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--accent)' }}>₹{res.total_amount}</span>
-        <Link to={ROUTES.RESERVATION_DETAIL.replace(':id', res.id)} style={{ textDecoration: 'none' }}>
-          <button className="btn-secondary" style={{ padding: '0.5rem 1rem', minHeight: 36, fontSize: '0.85rem' }}>
-            View Details
-          </button>
-        </Link>
-      </div>
-    </div>
-  );
-
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', minHeight: 'calc(100vh - 60px)', animation: 'fadeIn 0.4s ease' }}>
+    <div className="page-container" style={{ animation: 'fadeIn 0.4s ease' }}>
       <BackgroundLayer type="dashboard" />
+
       <div className="page-header">
         <h1>My Orders</h1>
-        <p>Track and manage your campus reservations.</p>
+        <p>Your campus reservations</p>
       </div>
 
       {reservations.length === 0 ? (
-        <div className="empty-state glass">
-          <div className="empty-state-icon">📦</div>
-          <h3>No reservations yet</h3>
-          <p>You haven't ordered anything yet.</p>
-          <Link to={ROUTES.ITEMS} style={{ textDecoration: 'none', marginTop: '1rem' }}>
-            <button className="btn-primary">Browse Items</button>
-          </Link>
+        <div className="cart-empty-container">
+          <div className="empty-state glass" style={{ maxWidth: 480, borderRadius: 'var(--r-2xl)', padding: '3rem 2rem' }}>
+            <div className="empty-state-icon" style={{ fontSize: '2.5rem', width: 80, height: 80 }}>📦</div>
+            <h3 style={{ fontSize: '1.3rem' }}>No reservations yet</h3>
+            <p>Your reserved canteen items will appear here.</p>
+            <Link to={`${ROUTES.ITEMS}?shop=canteen`} style={{ textDecoration: 'none', marginTop: '0.5rem' }}>
+              <button className="btn-primary">Browse Canteen</button>
+            </Link>
+          </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
-          
-          <section>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-primary)' }}>
-              <span style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', boxShadow: 'var(--shadow-glow)' }} />
-              Active Orders
-            </h2>
-            {activeReservations.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>No active orders.</p>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-                {activeReservations.map(r => <ReservationCard key={r.id} res={r} />)}
-              </div>
-            )}
-          </section>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
 
-          <section>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
-              Past Orders
-            </h2>
-            {pastReservations.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>No past orders.</p>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem', opacity: 0.8 }}>
-                {pastReservations.map(r => <ReservationCard key={r.id} res={r} />)}
+          {/* Active Orders */}
+          {activeReservations.length > 0 && (
+            <section>
+              <h2 className="orders-section-title">
+                <span className="orders-section-dot" style={{ background: 'var(--accent)', boxShadow: 'var(--shadow-glow)' }} />
+                Active Orders
+                <span className="orders-section-count">{activeReservations.length}</span>
+              </h2>
+              <div className="orders-list">
+                {activeReservations.map((r, i) => (
+                  <OrderCard key={r.id} res={r} index={i} />
+                ))}
               </div>
-            )}
-          </section>
+            </section>
+          )}
 
+          {/* Past Orders */}
+          {pastReservations.length > 0 && (
+            <section>
+              <h2 className="orders-section-title" style={{ color: 'var(--text-secondary)' }}>
+                Past Orders
+                <span className="orders-section-count">{pastReservations.length}</span>
+              </h2>
+              <div className="orders-list" style={{ opacity: 0.75 }}>
+                {pastReservations.map((r, i) => (
+                  <OrderCard key={r.id} res={r} index={i} />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </div>

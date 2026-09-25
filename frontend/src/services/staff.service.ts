@@ -1,10 +1,10 @@
 // @ts-nocheck
 import { supabase } from '@/lib/supabase';
-import type { Reservation, StaffProfile } from '@/types';
+import type { Reservation, StaffProfile, Item, QRReservationResult } from '@/types';
 
 /**
- * Staff service fetching data purely based on auth.uid() authorization.
- * No shopId is passed from frontend components to backend for authorization.
+ * Staff service — all data access is based on auth.uid() authorization.
+ * No shopId is passed from the frontend; the backend/RLS enforces it.
  */
 
 export const getCurrentStaffProfile = async (): Promise<StaffProfile | null> => {
@@ -35,8 +35,8 @@ export const getCurrentStaffProfile = async (): Promise<StaffProfile | null> => 
 };
 
 /**
- * Gets reservations for the currently authenticated staff member's assigned shop.
- * RLS handles the filtering automatically based on auth.uid().
+ * Gets all reservations for the currently authenticated staff member's shop.
+ * RLS handles shop filtering automatically based on auth.uid().
  */
 export const getShopReservations = async (): Promise<Reservation[]> => {
   const { data, error } = await supabase
@@ -71,4 +71,50 @@ export const updateReservationStatus = async (reservationId: string, newStatus: 
   if (error) {
     throw new Error(error.message || 'Failed to update status');
   }
+};
+
+/**
+ * Gets ALL items for the staff's assigned shop (including unavailable).
+ * Uses the get_shop_items RPC which enforces staff authentication.
+ */
+export const getShopItems = async (): Promise<Item[]> => {
+  const { data, error } = await (supabase as any).rpc('get_shop_items');
+
+  if (error) {
+    throw new Error(error.message || 'Failed to load shop items');
+  }
+
+  return (data as Item[]) || [];
+};
+
+/**
+ * Toggles item availability for a shop item.
+ * Uses the toggle_item_availability RPC which enforces staff authentication + shop ownership.
+ */
+export const toggleItemAvailability = async (itemId: string, isAvailable: boolean): Promise<void> => {
+  const { error } = await (supabase as any).rpc('toggle_item_availability', {
+    p_item_id: itemId,
+    p_is_available: isAvailable
+  });
+
+  if (error) {
+    throw new Error(error.message || 'Failed to update item availability');
+  }
+};
+
+/**
+ * Looks up a reservation by human-readable Order ID (CAMP-2026-XXXXXX).
+ * Used as a fallback when camera QR scanning is unavailable.
+ * The RPC enforces: authenticated canteen_staff + shop ownership + order_type=canteen.
+ */
+export const getReservationByCode = async (code: string): Promise<QRReservationResult> => {
+  const { data, error } = await (supabase as any).rpc('get_reservation_by_code', {
+    p_reservation_code: code
+  });
+
+  if (error) {
+    throw new Error(error.message || 'Order not found.');
+  }
+
+  return data as QRReservationResult;
 };

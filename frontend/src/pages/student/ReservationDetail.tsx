@@ -5,8 +5,16 @@ import type { Reservation, StudentProfile } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants';
-import BackgroundLayer from '@/components/common/BackgroundLayer';
 import ReservationQRCode from '@/components/student/ReservationQRCode';
+
+const statusConfig: Record<string, { label: string; icon: string; color: string }> = {
+  pending:   { label: 'Pending',   icon: '●', color: 'var(--status-pending)' },
+  confirmed: { label: 'Preparing', icon: '●', color: 'var(--status-confirmed)' },
+  ready:     { label: 'Ready',     icon: '✓', color: 'var(--status-ready)' },
+  collected: { label: 'Completed', icon: '✓', color: 'var(--status-collected)' },
+  cancelled: { label: 'Cancelled', icon: '×', color: 'var(--status-cancelled)' },
+  expired:   { label: 'Expired',   icon: '×', color: 'var(--status-expired)' },
+};
 
 export default function ReservationDetail() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +26,7 @@ export default function ReservationDetail() {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAllItems, setShowAllItems] = useState(false);
 
   const fetchReservation = useCallback(async () => {
     if (!id) return;
@@ -101,198 +110,219 @@ export default function ReservationDetail() {
     }
   };
 
+  /* ── Loading State ── */
   if (loading) {
     return (
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
-         <div className="skeleton" style={{ height: 600, borderRadius: 'var(--r-2xl)' }} />
+      <div className="ticket-page">
+        <div className="ticket-container">
+          <div className="skeleton" style={{ height: 600, borderRadius: 'var(--r-2xl)' }} />
+        </div>
       </div>
     );
   }
-  
-  if (error || !reservation) return <div className="empty-state"><span className="empty-state-icon">⚠️</span><h3>Not Found</h3><p>{error || 'Reservation not found.'}</p></div>;
+
+  /* ── Error / Not Found ── */
+  if (error || !reservation) {
+    return (
+      <div className="ticket-page">
+        <div className="ticket-container">
+          <div className="empty-state glass" style={{ borderRadius: 'var(--r-2xl)' }}>
+            <span className="empty-state-icon">⚠️</span>
+            <h3>Not Found</h3>
+            <p>{error || 'Reservation not found.'}</p>
+            <button onClick={() => navigate(ROUTES.RESERVATIONS)} className="btn-primary">Back to Orders</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const status = reservation.status;
-  
-  const steps = [
-    { key: 'pending',   label: 'Pending' },
-    { key: 'confirmed', label: 'Preparing' },
-    { key: 'ready',     label: 'Ready' },
-    { key: 'collected', label: 'Completed' }
-  ];
-
-  const getStepIndex = (st: string) => steps.findIndex(s => s.key === st);
-  const currentIndex = getStepIndex(status);
-
-  // Show QR when reservation is pending or confirmed (i.e. not yet ready/collected/cancelled)
-  const showQR = (status === 'pending' || status === 'confirmed')
+  const statusInfo = statusConfig[status] || { label: status, icon: '●', color: 'var(--text-muted)' };
+  const showQR = (status === 'pending' || status === 'confirmed' || status === 'ready')
     && reservation.qr_token
     && reservation.order_type === 'canteen';
+  const canCancel = status === 'pending';
+  const items = reservation.items ?? [];
+  const visibleItems = showAllItems ? items : items.slice(0, 4);
+  const hiddenCount = items.length - 4;
+
+  const createdDate = new Date(reservation.created_at);
+  const dateStr = createdDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const timeStr = createdDate.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', animation: 'fadeIn 0.4s ease' }}>
-      <BackgroundLayer type="neutral" />
-      
-      <button 
-        onClick={() => navigate(ROUTES.RESERVATIONS)} 
-        className="btn-ghost"
-        style={{ marginBottom: '1.5rem', padding: 0 }}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-        Back to Orders
-      </button>
+    <div className="ticket-page" style={{ animation: 'fadeIn 0.4s ease' }}>
+      {/* Back button */}
+      <div className="ticket-back-nav">
+        <button
+          onClick={() => navigate(ROUTES.RESERVATIONS)}
+          className="btn-ghost"
+          style={{ padding: '0.25rem 0' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          Back to Orders
+        </button>
+      </div>
 
-      <div className="glass-strong" style={{ borderRadius: 'var(--r-2xl)', padding: '3rem', display: 'flex', flexDirection: 'column', gap: '3rem', boxShadow: 'var(--shadow-lg)' }}>
-        
-        {/* Header */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-          <div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Reservation ID</p>
-            <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{reservation.reservation_code}</h1>
-            <p style={{ fontSize: '1rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-              {new Date(reservation.created_at).toLocaleString()}
-            </p>
-          </div>
-          <div className={`badge badge-${status}`} style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}>
-            {steps.find(s => s.key === status)?.label ?? status}
-          </div>
-        </div>
+      {/* ═══════════════════════════════════════════════════
+         DIGITAL TICKET
+         ═══════════════════════════════════════════════════ */}
+      <div className="ticket-container">
+        <div className="ticket" style={{ animation: 'slideInUp 0.5s ease' }}>
 
-        {/* Visual Timeline Stepper */}
-        {status !== 'cancelled' && status !== 'expired' && (
-          <div style={{ padding: '1rem 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
-              {/* Connecting Line — background */}
-              <div style={{ position: 'absolute', top: '16px', left: '10%', right: '10%', height: '4px', background: 'var(--glass-bg)', borderRadius: 'var(--r-full)' }} />
-              {/* Connecting Line — filled progress */}
-              <div style={{ position: 'absolute', top: '16px', left: '10%', right: '10%', height: '4px', background: 'var(--accent)', borderRadius: 'var(--r-full)', width: currentIndex > 0 ? `${(currentIndex / 3) * 80}%` : '0%', transition: 'width 0.5s ease-out' }} />
-
-              {steps.map((step, idx) => {
-                const isCompleted = currentIndex >= idx;
-                const isCurrent = currentIndex === idx;
-                return (
-                  <div key={step.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, width: '25%' }}>
-                    <div style={{ 
-                      width: '36px', height: '36px', borderRadius: '50%', 
-                      background: isCompleted ? 'var(--accent)' : 'var(--bg-elevated)', 
-                      border: isCompleted ? 'none' : '2px solid var(--glass-border)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: isCompleted ? '#fff' : 'var(--text-muted)', fontSize: '1rem', fontWeight: 800,
-                      boxShadow: isCurrent ? '0 0 0 6px var(--accent-glow)' : 'none',
-                      transition: 'all 0.3s ease'
-                    }}>
-                      {isCompleted ? '✓' : idx + 1}
-                    </div>
-                    <span style={{ marginTop: '1rem', fontSize: '0.9rem', fontWeight: isCurrent ? 700 : 500, color: isCompleted ? 'var(--text-primary)' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      {step.label}
-                    </span>
-                  </div>
-                );
-              })}
+          {/* ── Ticket Header ── */}
+          <div className="ticket-header">
+            <div className="ticket-brand">
+              <span className="ticket-brand-text">CAMPUSONE</span>
+              <span className="ticket-brand-sub">{reservation.canteen?.name?.toUpperCase() || 'CAMPUS CANTEEN'}</span>
+            </div>
+            <div className="ticket-status-badge" style={{ '--status-color': statusInfo.color } as React.CSSProperties}>
+              <span className="ticket-status-dot" />
+              {statusInfo.label}
             </div>
           </div>
-        )}
 
-        {/* QR Code — shown for active canteen orders */}
-        {showQR && (
-          <ReservationQRCode
-            qrToken={reservation.qr_token!}
-            reservationCode={reservation.reservation_code}
-          />
-        )}
+          {/* ── Ticket Perforation ── */}
+          <div className="ticket-perforation">
+            <div className="ticket-perf-circle ticket-perf-left" />
+            <div className="ticket-perf-line" />
+            <div className="ticket-perf-circle ticket-perf-right" />
+          </div>
 
-        {/* Info for bookstore orders (no QR) */}
-        {(status === 'pending' || status === 'confirmed') && reservation.order_type === 'bookstore' && (
-          <div style={{ padding: '1.5rem', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 'var(--r-lg)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ fontSize: '1.5rem' }}>📚</span>
+          {/* ── QR Section ── */}
+          {showQR && (
+            <div className="ticket-qr-section">
+              <p className="ticket-section-label">RESERVATION</p>
+              <div className="ticket-qr-wrapper">
+                <ReservationQRCode
+                  qrToken={reservation.qr_token!}
+                  reservationCode={reservation.reservation_code}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── Reservation Code (when no QR) ── */}
+          {!showQR && (
+            <div className="ticket-code-section">
+              <p className="ticket-section-label">RESERVATION CODE</p>
+              <p className="ticket-code-display">{reservation.reservation_code}</p>
+            </div>
+          )}
+
+          {/* ── Ticket Perforation 2 ── */}
+          <div className="ticket-perforation">
+            <div className="ticket-perf-circle ticket-perf-left" />
+            <div className="ticket-perf-line" />
+            <div className="ticket-perf-circle ticket-perf-right" />
+          </div>
+
+          {/* ── Student Info ── */}
+          <div className="ticket-student-section">
+            <div className="ticket-student-grid">
+              <div>
+                <span className="ticket-field-label">STUDENT</span>
+                <span className="ticket-field-value">{profile?.name || '—'}</span>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span className="ticket-field-label">ROLL NO</span>
+                <span className="ticket-field-value ticket-mono">{profile?.rollNumber || '—'}</span>
+              </div>
+            </div>
+            {(profile?.classSection || profile?.year) && (
+              <div className="ticket-student-meta">
+                {profile?.classSection}{profile?.classSection && profile?.year ? ' • ' : ''}{profile?.year}
+              </div>
+            )}
+          </div>
+
+          {/* ── Date / Time ── */}
+          <div className="ticket-datetime">
             <div>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Bookstore Order</p>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                Visit the bookstore with your reservation code <strong style={{ color: 'var(--text-primary)' }}>{reservation.reservation_code}</strong> to collect your items.
+              <span className="ticket-field-label">DATE</span>
+              <span className="ticket-field-value">{dateStr}</span>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span className="ticket-field-label">TIME</span>
+              <span className="ticket-field-value">{timeStr}</span>
+            </div>
+          </div>
+
+          {/* ── Ticket Perforation 3 ── */}
+          <div className="ticket-perforation">
+            <div className="ticket-perf-circle ticket-perf-left" />
+            <div className="ticket-perf-line" />
+            <div className="ticket-perf-circle ticket-perf-right" />
+          </div>
+
+          {/* ── Items ── */}
+          <div className="ticket-items-section">
+            <p className="ticket-section-label">ITEMS</p>
+            <div className="ticket-items-list">
+              {visibleItems.map((item: any) => (
+                <div key={item.id} className="ticket-item-row">
+                  <span className="ticket-item-qty">{item.quantity} ×</span>
+                  <span className="ticket-item-name">{item.item_name}</span>
+                  <span className="ticket-item-price">₹{item.subtotal}</span>
+                </div>
+              ))}
+              {!showAllItems && hiddenCount > 0 && (
+                <button
+                  onClick={() => setShowAllItems(true)}
+                  className="ticket-items-more"
+                >
+                  + {hiddenCount} more {hiddenCount === 1 ? 'item' : 'items'}
+                </button>
+              )}
+            </div>
+
+            {/* Total */}
+            <div className="ticket-total-row">
+              <span className="ticket-total-label">TOTAL</span>
+              <span className="ticket-total-amount">₹{reservation.total_amount}</span>
+            </div>
+          </div>
+
+          {/* ── Footer Instruction ── */}
+          <div className="ticket-footer">
+            {showQR ? (
+              <p className="ticket-instruction">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <rect x="3" y="3" width="7" height="7" />
+                  <rect x="14" y="3" width="7" height="7" />
+                  <rect x="14" y="14" width="7" height="7" />
+                  <rect x="3" y="14" width="7" height="7" />
+                </svg>
+                Show this QR at the counter
               </p>
-            </div>
+            ) : status === 'collected' || status === 'cancelled' || status === 'expired' ? (
+              <p className="ticket-instruction">
+                {status === 'collected' ? 'Order completed — Enjoy your meal!' :
+                 status === 'cancelled' ? 'This reservation has been cancelled.' :
+                 'This reservation has expired.'}
+              </p>
+            ) : (
+              <p className="ticket-instruction">
+                Visit the counter with your reservation code
+              </p>
+            )}
           </div>
-        )}
 
-        {/* Details Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-          <div style={{ background: 'var(--bg-elevated)', padding: '1.5rem', borderRadius: 'var(--r-xl)', border: '1px solid var(--glass-border)' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              👤 Student Info
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Name</span>
-                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{profile?.name}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Roll No</span>
-                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{profile?.rollNumber}</span>
-              </div>
+          {/* ── Cancel Button ── */}
+          {canCancel && (
+            <div className="ticket-cancel-section">
+              <button
+                onClick={handleCancel}
+                disabled={cancelling}
+                className="btn-danger"
+                style={{ width: '100%', fontSize: '0.875rem', padding: '0.75rem' }}
+              >
+                {cancelling ? 'Cancelling…' : 'Cancel Reservation'}
+              </button>
             </div>
-          </div>
-          <div style={{ background: 'var(--bg-elevated)', padding: '1.5rem', borderRadius: 'var(--r-xl)', border: '1px solid var(--glass-border)' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              🏪 Shop Details
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Name</span>
-                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{reservation.canteen?.name}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Type</span>
-                <span style={{ color: 'var(--text-primary)', fontWeight: 500, textTransform: 'capitalize' }}>
-                  {reservation.order_type ?? reservation.canteen?.type ?? '—'}
-                </span>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
-
-        {/* Order Items */}
-        <div>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            📦 Order Items
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-            {reservation.items?.map((item: any) => (
-              <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', background: 'var(--glass-bg)', borderRadius: 'var(--r-lg)', border: '1px solid var(--glass-border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <span style={{ width: 32, height: 32, background: 'var(--bg-elevated)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', border: '1px solid var(--glass-border)' }}>
-                    {item.quantity}
-                  </span>
-                  <div>
-                    <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1.1rem' }}>{item.item_name}</p>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>₹{item.unit_price} each</p>
-                  </div>
-                </div>
-                <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
-                  ₹{item.subtotal}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', background: 'var(--bg-elevated)', borderRadius: 'var(--r-xl)', border: '1px solid var(--glass-border)' }}>
-            <span style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-muted)' }}>Total Amount</span>
-            <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--accent)' }}>₹{reservation.total_amount}</span>
-          </div>
-        </div>
-
-        {/* Cancellation */}
-        {(status === 'pending' || status === 'confirmed') && (
-          <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column', marginTop: '1rem' }}>
-            <button 
-              onClick={handleCancel} 
-              disabled={cancelling} 
-              className="btn-ghost"
-              style={{ width: '100%', color: 'var(--danger)', padding: '1.25rem', borderRadius: 'var(--r-lg)', fontWeight: 600, fontSize: '1rem' }}
-            >
-              {cancelling ? 'Cancelling…' : 'Cancel Reservation'}
-            </button>
-          </div>
-        )}
-
       </div>
     </div>
   );

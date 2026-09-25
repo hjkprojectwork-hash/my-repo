@@ -24,7 +24,8 @@ export const getMyReservations = async (): Promise<Reservation[]> => {
     .from('reservations')
     .select(`
       *,
-      canteen:canteens(*)
+      canteen:canteens(*),
+      items:reservation_items(*)
     `)
     .order('created_at', { ascending: false });
 
